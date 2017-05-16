@@ -1,9 +1,10 @@
 apply plugin: "com.android.library"
+apply plugin: "maven"
 
 android
 {
   compileSdkVersion 25
-  buildToolsVersion "25.0.2"
+  buildToolsVersion "25.0.3"
 
   defaultConfig
   {
@@ -11,7 +12,7 @@ android
     targetSdkVersion 25
 
     versionCode 1
-    versionName "1.0"
+    versionName "0.1"
   }
 
   buildTypes
@@ -27,8 +28,35 @@ android
 
 dependencies
 {
-  //Third party
   compile ("com.smartnsoft:droid4me:2.5.0")
   compile ("com.smartnsoft:droid4me.ext:2.5.0")
   compile ("com.squareup.okhttp3:okhttp:3.8.0")
+}
+
+uploadArchives
+{
+  repositories
+  {
+    mavenDeployer
+    {
+      repository(url: nexusReleaseUrl)
+      {
+        authentication(userName: nexusUsername, password: nexusPassword)
+      }
+
+      snapshotRepository(url: nexusSnapshotUrl)
+      {
+        authentication(userName: nexusUsername, password: nexusPassword)
+      }
+
+      pom.project
+      {
+        name "okhttpclientwebservicecaller"
+        groupId "com.smartnsoft"
+        artifactId "okhttpclientwebservicecaller"
+        version android.defaultConfig.versionName
+        packaging "aar"
+      }
+    }
+  }
 }
