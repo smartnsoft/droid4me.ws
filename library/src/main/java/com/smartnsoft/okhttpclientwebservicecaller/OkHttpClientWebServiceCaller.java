@@ -171,10 +171,6 @@ public abstract class OkHttpClientWebServiceCaller
     httpClient = null;
   }
 
-  protected abstract int getReadTimeout();
-
-  protected abstract int getConnectTimeout();
-
   /**
    * Is responsible for returning an HTTP client instance, used for actually running the HTTP requests. The method implementation relies on the
    * {@link #computeHttpClient()} method, if no {@link OkHttpClient} is currently created.
