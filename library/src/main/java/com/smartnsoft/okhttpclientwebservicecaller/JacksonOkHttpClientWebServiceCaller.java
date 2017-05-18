@@ -5,7 +5,9 @@ import java.util.concurrent.TimeUnit;
 import com.smartnsoft.droid4me.ext.json.jackson.JacksonParser;
 import com.smartnsoft.droid4me.ext.json.jackson.ObjectMapperComputer;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import okhttp3.OkHttpClient;
 
 /**
@@ -33,7 +35,12 @@ public abstract class JacksonOkHttpClientWebServiceCaller
   @Override
   public ObjectMapper computeObjectMapper()
   {
-    return null;
+    final ObjectMapper theObjectMapper = new ObjectMapper();
+    // We indicate to the parser not to fail in case of unknown properties, for backward compatibility reasons
+    // See http://stackoverflow.com/questions/6300311/java-jackson-org-codehaus-jackson-map-exc-unrecognizedpropertyexception
+    theObjectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    theObjectMapper.configure(SerializationFeature.WRITE_NULL_MAP_VALUES, true);
+    return theObjectMapper;
   }
 
   @Override
