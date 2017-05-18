@@ -469,6 +469,8 @@ public abstract class OkHttpClientWebServiceCaller
       }
     }
 
+    final OkHttpClient httpClient = getHttpClient();
+
     onBeforeHttpRequestExecution(httpClient, requestBuilder, callType);
 
     final Request request = requestBuilder.build();
