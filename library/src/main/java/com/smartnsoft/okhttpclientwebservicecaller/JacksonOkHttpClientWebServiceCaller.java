@@ -21,15 +21,11 @@ public abstract class JacksonOkHttpClientWebServiceCaller
 
   public final JacksonParser jacksonParser;
 
-  private final int readTimeOutInMilliseconds;
-
-  private final int connectTimeOutInMilliseconds;
-
-  protected JacksonOkHttpClientWebServiceCaller(int readTimeOutInMilliseconds, int connectTimeOutInMilliseconds)
+  protected JacksonOkHttpClientWebServiceCaller(int readTimeOutInMilliseconds, int connectTimeOutInMilliseconds,
+      boolean acceptGzip)
   {
+    super(readTimeOutInMilliseconds, connectTimeOutInMilliseconds, acceptGzip);
     this.jacksonParser = new JacksonParser(this);
-    this.readTimeOutInMilliseconds = readTimeOutInMilliseconds;
-    this.connectTimeOutInMilliseconds = connectTimeOutInMilliseconds;
   }
 
   @Override
@@ -47,8 +43,8 @@ public abstract class JacksonOkHttpClientWebServiceCaller
   protected OkHttpClient.Builder computeHttpClient()
   {
     final OkHttpClient.Builder builder = super.computeHttpClient();
-    builder.connectTimeout(connectTimeOutInMilliseconds, TimeUnit.MILLISECONDS);
-    builder.readTimeout(readTimeOutInMilliseconds, TimeUnit.MILLISECONDS);
+    builder.connectTimeout(getConnectTimeOut(), TimeUnit.MILLISECONDS);
+    builder.readTimeout(getReadTimeOut(), TimeUnit.MILLISECONDS);
 
     return builder;
   }

@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import android.support.annotation.CallSuper;
 import android.text.TextUtils;
 
 import com.smartnsoft.droid4me.log.Logger;
@@ -56,7 +57,21 @@ public abstract class OkHttpClientWebServiceCaller
 
   protected final static Logger log = LoggerFactory.getInstance(OkHttpClientWebServiceCaller.class);
 
+  private final int readTimeOutInMilliseconds;
+
+  private final int connectTimeOutInMilliseconds;
+
+  private final boolean acceptGzip;
+
   private OkHttpClient httpClient;
+
+  protected OkHttpClientWebServiceCaller(int readTimeOutInMilliseconds, int connectTimeOutInMilliseconds,
+      boolean acceptGzip)
+  {
+    this.readTimeOutInMilliseconds = readTimeOutInMilliseconds;
+    this.connectTimeOutInMilliseconds = connectTimeOutInMilliseconds;
+    this.acceptGzip = acceptGzip;
+  }
 
   /**
    * Equivalent to calling {@link #runRequest(String, CallType, Map, String)} with {@code callType} parameter set to
@@ -245,10 +260,15 @@ public abstract class OkHttpClientWebServiceCaller
     throw new CallException(message, response.code());
   }
 
+  @CallSuper
   protected void onBeforeHttpRequestExecution(OkHttpClient httpClient, Request.Builder requestBuilder,
       CallType callType)
       throws CallException
   {
+    if (acceptGzip == true)
+    {
+      requestBuilder.addHeader("Accept-Encoding", "gzip");
+    }
   }
 
   /**
@@ -384,6 +404,16 @@ public abstract class OkHttpClientWebServiceCaller
         break;
     }
     return performHttpRequest(uri, callType, headers, parameters, body, files, requestBuilder, 0);
+  }
+
+  protected int getConnectTimeOut()
+  {
+    return connectTimeOutInMilliseconds;
+  }
+
+  protected int getReadTimeOut()
+  {
+    return readTimeOutInMilliseconds;
   }
 
   private RequestBody computeRequestBody(Map<String, String> parameters, String body, List<MultipartFile> files)
