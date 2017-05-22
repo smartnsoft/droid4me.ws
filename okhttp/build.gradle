@@ -11,8 +11,8 @@ android
     minSdkVersion 14
     targetSdkVersion 25
 
-    versionCode 5
-    versionName "0.5"
+    versionCode 6
+    versionName "0.6"
   }
 
   buildTypes
@@ -28,8 +28,11 @@ android
 
 dependencies
 {
-  compile ("com.smartnsoft:droid4me:2.5.0")
-  compile ("com.smartnsoft:droid4me.ext:2.5.0")
+  //Smart&Soft
+  compile ("com.smartnsoft:droid4me:2.5.1")
+  compile ("com.smartnsoft:droid4me.ext:2.5.1")
+
+  //Third party libraries
   compile ("com.squareup.okhttp3:okhttp:3.8.0")
 }
 
