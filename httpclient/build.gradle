@@ -1,0 +1,69 @@
+apply plugin: "com.android.library"
+apply plugin: "maven"
+
+android
+{
+  compileSdkVersion 25
+  buildToolsVersion "25.0.3"
+
+  useLibrary "org.apache.http.legacy"
+
+  defaultConfig
+  {
+    minSdkVersion 14
+    targetSdkVersion 25
+
+    versionCode 2
+    versionName "1.0.0"
+  }
+
+  buildTypes
+  {
+    release
+    {
+      minifyEnabled false
+      zipAlignEnabled true
+      proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+    }
+  }
+}
+
+dependencies
+{
+  //Smart&Soft
+  compile ("com.smartnsoft:droid4me:2.4.0")
+  compile ("com.smartnsoft:droid4me.ext:2.4.0")
+
+  //Third party libraries
+  compile ("org.apache.httpcomponents:httpcore:4.4")
+  compile ("org.apache.httpcomponents:httpmime:4.5.2")
+  compile ("com.fasterxml.jackson.core:jackson-databind:2.4.1")
+}
+
+uploadArchives
+{
+  repositories
+  {
+    mavenDeployer
+    {
+      repository(url: nexusReleaseUrl)
+      {
+        authentication(userName: nexusUsername, password: nexusPassword)
+      }
+
+      snapshotRepository(url: nexusSnapshotUrl)
+      {
+        authentication(userName: nexusUsername, password: nexusPassword)
+      }
+
+      pom.project
+      {
+        name "httpclientwebservicecaller"
+        groupId "com.smartnsoft"
+        artifactId "httpclientwebservicecaller"
+        version android.defaultConfig.versionName
+        packaging "aar"
+      }
+    }
+  }
+}
