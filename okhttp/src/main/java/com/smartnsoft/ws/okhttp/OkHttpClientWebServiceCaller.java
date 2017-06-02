@@ -298,7 +298,7 @@ public abstract class OkHttpClientWebServiceCaller
   {
     if (callType.verb != Verb.Head)
     {
-      final InputStream content = responseBody.byteStream();
+      final InputStream content = new ByteArrayInputStream(responseBody.bytes());
 
       if (WebServiceCaller.ARE_DEBUG_LOG_ENABLED == true && log.isDebugEnabled() == true)
       {
