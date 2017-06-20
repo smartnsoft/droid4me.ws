@@ -429,7 +429,7 @@ public abstract class OkHttpClientWebServiceCaller
       throws IOException
   {
     final MultipartBody.Builder builder = new MultipartBody.Builder();
-    builder.setType(files != null && files.isEmpty() == false ? MultipartBody.FORM : MediaType.parse("application/x-www-form-urlencoded"));
+    builder.setType(MultipartBody.FORM);
 
     if (files != null && files.isEmpty() == false)
     {
