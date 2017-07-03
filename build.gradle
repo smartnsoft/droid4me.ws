@@ -9,7 +9,8 @@ buildscript
 
   dependencies
   {
-    classpath "com.android.tools.build:gradle:2.3.2"
+    classpath "com.android.tools.build:gradle:2.3.3"
+    classpath "com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3"
   }
 }
 
@@ -18,17 +19,6 @@ allprojects
   repositories
   {
     jcenter()
-
-    maven
-    {
-      credentials
-      {
-        username nexusUsername
-        password nexusPassword
-      }
-
-      url nexusRepositoryUrl
-    }
   }
 }
 

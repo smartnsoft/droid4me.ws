@@ -1,5 +1,7 @@
 apply plugin: "com.android.library"
+apply plugin: "com.jfrog.bintray"
 apply plugin: "maven"
+apply plugin: "maven-publish"
 
 android
 {
@@ -11,8 +13,8 @@ android
     minSdkVersion 14
     targetSdkVersion 25
 
-    versionCode 8
-    versionName "0.8"
+    versionCode 10
+    versionName "1.0"
   }
 
   buildTypes
@@ -29,11 +31,120 @@ android
 dependencies
 {
   //Smart&Soft
-  compile ("com.smartnsoft:droid4me:2.5.1")
-  compile ("com.smartnsoft:droid4me.ext:2.5.1")
+  compile ("com.smartnsoft:droid4me:2.5.2")
+  compile ("com.smartnsoft:droid4me.ext:2.5.2")
 
   //Third party libraries
   compile ("com.squareup.okhttp3:okhttp:3.8.0")
+}
+
+task sourcesJar(type: Jar) {
+  classifier = "sources"
+  from android.sourceSets.main.java.srcDirs
+}
+
+task javadoc(type: Javadoc) {
+  title = "httpclient API"
+  description "Javadoc for the okhttp web service caller implementation"
+  source = android.sourceSets.main.java.srcDirs
+
+  options.charSet = "UTF-8"
+  options.overview = "src/main/javadoc/overview.html"
+  options.links = ["http://docs.oracle.com/javase/7/docs/api/", "http://d.android.com/reference/"]
+
+  classpath += project.files(project.android.getBootClasspath().join(File.pathSeparator))
+  failOnError = false
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+  classifier = "javadoc"
+  from javadoc.destinationDir
+  // options.encoding = 'UTF-8'
+}
+
+artifacts
+{
+  archives javadocJar
+  archives sourcesJar
+}
+
+def pomConfig = {
+  licenses
+  {
+    license
+    {
+      name "MIT License (MIT)"
+      url "https://opensource.org/licenses/MIT"
+      distribution "repo"
+    }
+  }
+}
+
+publishing
+{
+  publications
+  {
+    ReleasePublication(MavenPublication)
+    {
+      artifact sourcesJar
+      artifact javadocJar
+      groupId "com.smartnsoft"
+      artifactId "okhttpwebservicecaller"
+      version android.defaultConfig.versionName
+
+      pom.withXml
+      {
+        def root = asNode()
+        root.appendNode("description", "extension of the droid4me framework which contains the okhttp web service caller implementation")
+        root.appendNode("name", "okhttpwebservicecaller")
+        root.appendNode("url", "hhttps://github.com/smartnsoft/droid4me.ws")
+        root.children().last() + pomConfig
+      }
+    }
+  }
+}
+
+//https://gist.github.com/bugs84/b7887fb5d7f9f2d484b8
+publishing.publications.all
+{
+  pom.withXml
+  {
+    asNode().dependencies."*".findAll()
+    {
+      it.scope.text() == "runtime" && project.configurations.compile.allDependencies.find { dep ->
+        dep.name == it.artifactId.text()
+      }
+    }.each
+    {
+      it.scope*.value = "compile"
+    }
+  }
+}
+
+bintray
+{
+  user = bintrayUsername
+  key = bintrayKey
+
+  publications = ["ReleasePublication"]
+
+  pkg
+  {
+    repo = "maven"
+    name = "okhttpwebservicecaller"
+    userOrg = "smartnsoft"
+    licenses = ["MIT"]
+    vcsUrl = "https://github.com/smartnsoft/droid4me.ws.git"
+    publish = true
+
+    version
+    {
+      name = android.defaultConfig.versionName
+      desc = "extension of the droid4me framework which contains the okhttp web service caller implementation"
+      released  = new Date()
+      vcsTag = "httpclientwebservicecaller-" + android.defaultConfig.versionName
+    }
+  }
 }
 
 uploadArchives
@@ -42,9 +153,9 @@ uploadArchives
   {
     mavenDeployer
     {
-      repository(url: nexusReleaseUrl)
+      repository(url: "https://api.bintray.com/maven/smartnsoft/maven/okhttpwebservicecaller/;publish=1")
       {
-        authentication(userName: nexusUsername, password: nexusPassword)
+        authentication(userName: bintrayUsername, password: bintrayKey)
       }
 
       snapshotRepository(url: nexusSnapshotUrl)
@@ -54,9 +165,9 @@ uploadArchives
 
       pom.project
       {
-        name "okhttpclientwebservicecaller"
+        name "okhttpwebservicecaller"
         groupId "com.smartnsoft"
-        artifactId "okhttpclientwebservicecaller"
+        artifactId "okhttpwebservicecaller"
         version android.defaultConfig.versionName
         packaging "aar"
       }
