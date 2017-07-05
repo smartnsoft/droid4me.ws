@@ -42,124 +42,15 @@ dependencies
   compile 'com.fasterxml.jackson.core:jackson-databind:2.4.1'
 }
 
-task sourcesJar(type: Jar) {
-  classifier = "sources"
-  from android.sourceSets.main.java.srcDirs
-}
-
-task javadoc(type: Javadoc) {
-  title = "httpclient API"
-  description "Javadoc for the httpclient web service caller implementation"
-  source = android.sourceSets.main.java.srcDirs
-
-  options.charSet = "UTF-8"
-  options.overview = "src/main/javadoc/overview.html"
-  options.links = ["http://docs.oracle.com/javase/7/docs/api/", "http://d.android.com/reference/"]
-
-  classpath += project.files(project.android.getBootClasspath().join(File.pathSeparator))
-  failOnError = false
-}
-
-task javadocJar(type: Jar, dependsOn: javadoc) {
-  classifier = "javadoc"
-  from javadoc.destinationDir
-  // options.encoding = 'UTF-8'
-}
-
-artifacts
-{
-  archives javadocJar
-  archives sourcesJar
-}
-
-def pomConfig = {
-  licenses
-  {
-    license
-    {
-      name "MIT License (MIT)"
-      url "https://opensource.org/licenses/MIT"
-      distribution "repo"
-    }
-  }
-}
-
-publishing
-{
-  publications
-  {
-    ReleasePublication(MavenPublication)
-    {
-      artifact sourcesJar
-      artifact javadocJar
-      groupId "com.smartnsoft"
-      artifactId "httpclientwebservicecaller"
-      version android.defaultConfig.versionName
-
-      pom.withXml
-      {
-        def root = asNode()
-        root.appendNode("description", "extension of the droid4me framework which the httpclient contains web service caller implementation")
-        root.appendNode("name", "httpclientwebservicecaller")
-        root.appendNode("url", "hhttps://github.com/smartnsoft/droid4me.ws")
-        root.children().last() + pomConfig
-      }
-    }
-  }
-}
-
-//https://gist.github.com/bugs84/b7887fb5d7f9f2d484b8
-publishing.publications.all
-{
-  pom.withXml
-  {
-    asNode().dependencies."*".findAll()
-    {
-      it.scope.text() == "runtime" && project.configurations.compile.allDependencies.find { dep ->
-        dep.name == it.artifactId.text()
-      }
-    }.each
-    {
-      it.scope*.value = "compile"
-    }
-  }
-}
-
-bintray
-{
-  user = bintrayUsername
-  key = bintrayKey
-
-  publications = ["ReleasePublication"]
-
-  pkg
-  {
-    repo = "maven"
-    name = "httpclientwebservicecaller"
-    userOrg = "smartnsoft"
-    licenses = ["MIT"]
-    vcsUrl = "https://github.com/smartnsoft/droid4me.ws.git"
-    publish = true
-
-    version
-    {
-      name = android.defaultConfig.versionName
-      desc = "extension of the droid4me framework which contains the httpclient web service caller implementation"
-      released  = new Date()
-      vcsTag = "httpclientwebservicecaller-" + android.defaultConfig.versionName
-    }
-  }
-}
-
 uploadArchives
 {
   repositories
   {
     mavenDeployer
     {
-      repository(url: "https://api.bintray.com/maven/smartnsoft/maven/httpclientwebservicecaller/;publish=1")
+      repository(url: nexusReleaseUrl)
       {
-        authentication(userName: bintrayUsername, password: bintrayKey)
+        authentication(userName: nexusUsername, password: nexusPassword)
       }
 
       snapshotRepository(url: nexusSnapshotUrl)
