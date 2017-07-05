@@ -44,7 +44,7 @@ task sourcesJar(type: Jar) {
 }
 
 task javadoc(type: Javadoc) {
-  title = "httpclient API"
+  title = "okhttp API"
   description "Javadoc for the okhttp web service caller implementation"
   source = android.sourceSets.main.java.srcDirs
 
@@ -142,7 +142,7 @@ bintray
       name = android.defaultConfig.versionName
       desc = "extension of the droid4me framework which contains the okhttp web service caller implementation"
       released  = new Date()
-      vcsTag = "httpclientwebservicecaller-" + android.defaultConfig.versionName
+      vcsTag = "okhttpwebservicecaller-" + android.defaultConfig.versionName
     }
   }
 }
