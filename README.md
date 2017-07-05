@@ -17,7 +17,7 @@ Library releases are available on Jcenter
 **Gradle**
 
 ```groovy
-compile 'com.smartnsoft:recyclerview:1.2.4'
+compile 'com.smartnsoft:okhttpwebservicecaller:1.0'
 ```
 
 **Maven**
@@ -25,8 +25,8 @@ compile 'com.smartnsoft:recyclerview:1.2.4'
 ```xml
 <dependency>
   <groupId>com.smartnsoft</groupId>
-  <artifactId>recyclerview</artifactId>
-  <version>1.2.4</version>
+  <artifactId>okhttpwebservicecaller</artifactId>
+  <version>1.0</version>
   <type>aar</type>
 </dependency>
 ```
