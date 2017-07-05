@@ -3,7 +3,7 @@ Extension of the droid4me framework which contains web service caller implementa
 
 Available implementations :
 
-* httpclient (depracated)
+* httpclient (deprecated)
 * okhttp
 
 **Note :** an implementation based on the `URLConnection` is available into the droid4me framework.
