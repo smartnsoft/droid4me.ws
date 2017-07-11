@@ -34,12 +34,14 @@ import java.util.List;
 import java.util.Map;
 
 import android.support.annotation.CallSuper;
+import android.support.annotation.NonNull;
 import android.text.TextUtils;
 
 import com.smartnsoft.droid4me.log.Logger;
 import com.smartnsoft.droid4me.log.LoggerFactory;
 import com.smartnsoft.droid4me.ws.WebServiceCaller;
 
+import okhttp3.FormBody;
 import okhttp3.Headers;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -58,6 +60,11 @@ import okio.Buffer;
 public abstract class OkHttpClientWebServiceCaller
     extends WebServiceCaller
 {
+
+  public enum RequestBodyType
+  {
+    FormBody, MultipartBody
+  }
 
   protected final static Logger log = LoggerFactory.getInstance(OkHttpClientWebServiceCaller.class);
 
@@ -188,6 +195,12 @@ public abstract class OkHttpClientWebServiceCaller
     }
 
     httpClient = null;
+  }
+
+  public RequestBodyType getBodyType(String uri, CallType callType, Map<String, String> headers,
+      Map<String, String> parameters, String body, List<MultipartFile> files)
+  {
+    return RequestBodyType.MultipartBody;
   }
 
   /**
@@ -398,13 +411,13 @@ public abstract class OkHttpClientWebServiceCaller
         requestBuilder.head();
         break;
       case Post:
-        requestBuilder.post(computeRequestBody(parameters, body, files));
+        requestBuilder.post(computeRequestBody(uri, callType, headers, parameters, body, files));
         break;
       case Put:
-        requestBuilder.put(computeRequestBody(parameters, body, files));
+        requestBuilder.put(computeRequestBody(uri, callType, headers, parameters, body, files));
         break;
       case Delete:
-        requestBuilder.delete(computeRequestBody(parameters, body, files));
+        requestBuilder.delete(computeRequestBody(uri, callType, headers, parameters, body, files));
         break;
     }
     return performHttpRequest(uri, callType, headers, parameters, body, files, requestBuilder, 0);
@@ -420,7 +433,8 @@ public abstract class OkHttpClientWebServiceCaller
     return readTimeOutInMilliseconds;
   }
 
-  private RequestBody computeRequestBody(Map<String, String> parameters, String body, List<MultipartFile> files)
+  private RequestBody computeRequestBody(String uri, CallType callType, Map<String, String> headers,
+      Map<String, String> parameters, String body, List<MultipartFile> files)
       throws IOException
   {
     if ((parameters == null || parameters.size() == 0) && TextUtils.isEmpty(body) == true && (files == null || files.size() == 0))
@@ -428,6 +442,34 @@ public abstract class OkHttpClientWebServiceCaller
       return Util.EMPTY_REQUEST;
     }
 
+    if (getBodyType(uri, callType, headers, parameters, body, files) == RequestBodyType.MultipartBody)
+    {
+      return computeMultipartBody(parameters, body, files);
+    }
+
+    return computeFormBody(parameters);
+  }
+
+  private RequestBody computeFormBody(Map<String, String> parameters)
+  {
+    final FormBody.Builder builder = new FormBody.Builder();
+
+    if (parameters != null && parameters.isEmpty() == false)
+    {
+      for (final Map.Entry<String, String> parameter : parameters.entrySet())
+      {
+        builder.add(parameter.getKey(), parameter.getValue());
+      }
+    }
+
+    return builder.build();
+  }
+
+  @NonNull
+  private RequestBody computeMultipartBody(Map<String, String> parameters, String body,
+      List<MultipartFile> files)
+      throws IOException
+  {
     final MultipartBody.Builder builder = new MultipartBody.Builder();
     builder.setType(MultipartBody.FORM);
 

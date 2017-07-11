@@ -14,7 +14,7 @@ android
     targetSdkVersion 25
 
     versionCode 11
-    versionName "1.0.1.001-SNAPSHOT"
+    versionName "1.0.1.002-SNAPSHOT"
   }
 
   buildTypes
