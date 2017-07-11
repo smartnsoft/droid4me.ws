@@ -404,7 +404,7 @@ public abstract class OkHttpClientWebServiceCaller
         requestBuilder.put(computeRequestBody(parameters, body, files));
         break;
       case Delete:
-        requestBuilder.delete(Util.EMPTY_REQUEST);
+        requestBuilder.delete(computeRequestBody(parameters, body, files));
         break;
     }
     return performHttpRequest(uri, callType, headers, parameters, body, files, requestBuilder, 0);
@@ -423,6 +423,11 @@ public abstract class OkHttpClientWebServiceCaller
   private RequestBody computeRequestBody(Map<String, String> parameters, String body, List<MultipartFile> files)
       throws IOException
   {
+    if ((parameters == null || parameters.size() == 0) && TextUtils.isEmpty(body) == true && (files == null || files.size() == 0))
+    {
+      return Util.EMPTY_REQUEST;
+    }
+
     final MultipartBody.Builder builder = new MultipartBody.Builder();
     builder.setType(MultipartBody.FORM);
 
