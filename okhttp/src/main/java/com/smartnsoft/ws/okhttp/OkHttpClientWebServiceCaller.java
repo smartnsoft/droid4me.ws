@@ -158,7 +158,7 @@ public abstract class OkHttpClientWebServiceCaller
       final int statusCode = response.code();
       final InputStream inputStream = getContent(uri, callType, response.body());
 
-      return new HttpResponse(headerFields, statusCode, inputStream);
+      return new HttpResponse(headerFields, statusCode, inputStream, inputStream);
     }
     catch (CallException exception)
     {
