@@ -5,16 +5,15 @@ apply plugin: "maven-publish"
 
 android
 {
-  compileSdkVersion 26
-  buildToolsVersion "26.0.2"
+  compileSdkVersion 27
 
   defaultConfig
   {
     minSdkVersion 14
-    targetSdkVersion 26
+    targetSdkVersion 27
 
-    versionCode 12
-    versionName "1.0.1"
+    versionCode 13
+    versionName "1.1.0-SNAPSHOT"
   }
 
   buildTypes
@@ -31,8 +30,8 @@ android
 dependencies
 {
   //Smart&Soft
-  implementation ("com.smartnsoft:droid4me:2.5.3")
-  implementation ("com.smartnsoft:droid4me.ext:2.5.3")
+  implementation ("com.smartnsoft:droid4me:2.6.0")
+  implementation ("com.smartnsoft:droid4me.ext:2.6.0")
 
   //Third party libraries
   api ("com.squareup.okhttp3:okhttp:3.8.0")
