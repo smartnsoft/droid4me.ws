@@ -1,60 +1,44 @@
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TeamCity status](https://ci.smartnsoft.com/app/rest/builds/buildType(id:smartnsoft_droid4me_ws_android)/statusIcon)](https://ci.smartnsoft.com/viewType.html?buildTypeId=smartnsoft_droid4me_ws_android)
+
 # droid4me.ws
-Extension of the droid4me framework which contains web service caller implementation
+droid4me.ws a is an extension of the Android [droid4me framework](https://github.com/smartnsoft/droid4me) which contains several web service caller implementation.
 
-Available implementations :
+droid4me.ws consists of several parts :
+* _httpclient_ (deprecated) : an implementation based on the [Apache HTTP client](https://hc.apache.org/index.html).
+* _okhttp_ : an implementation based on the [Square HTTP client](http://square.github.io/okhttp/)
 
-* httpclient (deprecated)
-* okhttp
-
-**Note :** an implementation based on the `URLConnection` is available into the droid4me framework.
+**Note :** a default implementation based on the `URLConnection` is available into the [droid4me framework](https://github.com/smartnsoft/droid4me).
 
 ## Usage
 
-### From JCenter
+### 1. [DEPRECATED] httpclient
 
-Library releases are available on Jcenter
+Android 6.0 release removes support for the Apache HTTP client ([source](https://developer.android.com/about/versions/marshmallow/android-6.0-changes.html#behavior-apache-http-client))
 
-**Gradle**
+### 2. okhttp ([wiki](https://github.com/smartnsoft/droid4me.ws/wiki/okhttp))
+
+This implementation is based based on the [Square HTTP client](http://square.github.io/okhttp/) and exposed two classes :
+* `OkHttpClientWebServiceCaller` : this class extends the droid4me class `WebServiceCaller` and is responsible to compute the http client, perform the http request, manage the cache and manage errors.
+* `JacksonOkHttpClientWebServiceCaller` : this class extends `OkHttpClientWebServiceCaller` and implements the droid4me.ext interface `ObjectMapperComputer`. This class provides an `ObjectMapper` attribute (from the [Jackson library](https://github.com/FasterXML/jackson)) in order to parse JSON.
+
+## Download
+
+To add these implementations to your project, include the following in your **app module** `build.gradle` file:
 
 ```groovy
-compile 'com.smartnsoft:okhttpwebservicecaller:1.0'
+dependencies
+{ 
+  //okhttp
+  implementation ("com.smartnsoft:okhttpwebservicecaller:${latest.version}")
+}
 ```
-
-**Maven**
-
-```xml
-<dependency>
-  <groupId>com.smartnsoft</groupId>
-  <artifactId>okhttpwebservicecaller</artifactId>
-  <version>1.0</version>
-  <type>aar</type>
-</dependency>
-```
-
-### As Library Project
-
-Check out this repository and add it as a library project.
-
-Import the project into your favorite IDE and add `android.library.reference.1=/path/to/droid4me.log/the_choosen_module` to your `project.properties`.
-
-### Generate an aar file
-
-Library releases are not available on Maven Central or JCenter but you can generate an aar file by your owned :
-
-```console
-gradle clean choosen_module:assembleRelease
-```
-
-or
-
-```console
-gradle -b choosen_module/build.gradle clean assembleRelease
-```
-
-## Author
-
-The Android Team @Smart&Soft, software agency http://www.smartnsoft.com
+For the okhttp implementation, `${latest.version}` is [ ![Download](https://api.bintray.com/packages/smartnsoft/maven/okhttpwebservicecaller/images/download.svg) ](https://bintray.com/smartnsoft/maven/okhttpwebservicecaller/_latestVersion)
 
 ## License
 
-droid4me.ws is available under the MIT license. See the LICENSE file for more info.
+This library is available under the MIT license. See the LICENSE file for more info.
+
+## Author
+
+This library was proudly made by [Smart&Soft](https://smartnsoft.com/), Paris FRANCE
