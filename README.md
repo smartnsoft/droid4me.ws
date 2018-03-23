@@ -4,7 +4,7 @@
 # droid4me.ws
 droid4me.ws a is an extension of the Android [droid4me framework](https://github.com/smartnsoft/droid4me) which contains several web service caller implementation.
 
-droid4me.ws consiste of several parts :
+droid4me.ws consists of several parts :
 * _httpclient_ (deprecated) : an implementation based on the [Apache HTTP client](https://hc.apache.org/index.html).
 * _okhttp_ : an implementation based on the [Square HTTP client](http://square.github.io/okhttp/)
 
