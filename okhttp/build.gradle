@@ -30,8 +30,8 @@ android
 dependencies
 {
   //Smart&Soft
-  implementation ("com.smartnsoft:droid4me:2.6.0")
-  implementation ("com.smartnsoft:droid4me.ext:2.6.0")
+  api ("com.smartnsoft:droid4me:2.7.0")
+  api ("com.smartnsoft:droid4me.ext:2.7.0")
 
   //Third party libraries
   api ("com.squareup.okhttp3:okhttp:3.8.0")
@@ -154,12 +154,12 @@ uploadArchives
     {
       repository(url: "https://api.bintray.com/maven/smartnsoft/maven/okhttpwebservicecaller/;publish=1")
       {
-        authentication(userName: bintrayUsername, password: bintrayKey)
+        authentication(userName: findProperty("bintrayUsername") ?: "", password: findProperty("bintrayKey") ?: "")
       }
 
-      snapshotRepository(url: nexusSnapshotUrl)
+      snapshotRepository(url: findProperty("nexusSnapshotUrl") ?: "")
       {
-        authentication(userName: nexusUsername, password: nexusPassword)
+        authentication(userName: findProperty("nexusUsername") ?: "", password: findProperty("nexusPassword") ?: "")
       }
 
       pom.project
