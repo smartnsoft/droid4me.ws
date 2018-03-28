@@ -1,39 +1,42 @@
-package com.smartnsoft.wstest
+package com.smartnsoft.ws.retrofit
 
 import android.support.annotation.WorkerThread
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.smartnsoft.droid4me.cache.Values
+import com.smartnsoft.droid4me.log.Logger
 import com.smartnsoft.droid4me.log.LoggerFactory
 import com.smartnsoft.droid4me.ws.WebServiceClient
 import okhttp3.*
 import retrofit2.Call
+import retrofit2.Converter
 import retrofit2.Retrofit
-import retrofit2.converter.jackson.JacksonConverterFactory
-import retrofit2.converter.scalars.ScalarsConverterFactory
 import java.io.File
 import java.util.concurrent.TimeUnit
 
-
 /**
- * The class description here.
  *
  * @author David Fournier
  * @since 2017.10.12
  */
 
-private val ONLY_CACHE_UNSATISFIABLE_ERROR_CODE = 504
-
-abstract class RetrofitWebServiceCaller<API>(api: Class<API>, baseUrl: String, connectTimeout: Long = CONNECT_TIMEOUT, readTimeout: Long = READ_TIMEOUT, writeTimeout: Long = WRITE_TIMEOUT, cacheSize: Long = CACHE_SIZE, defaultCachePolicy: CachePolicy = CachePolicy.ONLY_NETWORK) {
+abstract class RetrofitWebServiceCaller<out API>(api: Class<API>, baseUrl: String, private val connectTimeout: Long = CONNECT_TIMEOUT, private val readTimeout: Long = READ_TIMEOUT, private val writeTimeout: Long = WRITE_TIMEOUT, private val cacheSize: Long = CACHE_SIZE, private val defaultCachePolicy: CachePolicy = CachePolicy.ONLY_NETWORK, protected val converterFactories: Array<Converter.Factory> = emptyArray())
+{
 
   data class CachePolicyTag(val cachePolicy: CachePolicy, val cacheRetentionPolicyInSeconds: Int?)
 
-  inner class CacheInterceptor : Interceptor {
-    override fun intercept(chain: Interceptor.Chain): Response {
+  private class CacheInterceptor : Interceptor
+  {
+
+    val log: Logger by lazy { LoggerFactory.getInstance(CacheInterceptor::class.java) }
+
+    override fun intercept(chain: Interceptor.Chain): Response
+    {
       val firstRequestBuilder = chain.request().newBuilder()
       val cachePolicyTag = chain.request().tag()
-      if (cachePolicyTag is CachePolicyTag) {
+      if (cachePolicyTag is CachePolicyTag)
+      {
         val cachePolicy = cachePolicyTag.cachePolicy
-        when (cachePolicy) {
+        when (cachePolicy)
+        {
           CachePolicy.ONLY_CACHE,
           CachePolicy.CACHE_THEN_NETWORK -> firstRequestBuilder.cacheControl(
               CacheControl.Builder()
@@ -46,55 +49,74 @@ abstract class RetrofitWebServiceCaller<API>(api: Class<API>, baseUrl: String, c
                   .noCache()
                   .maxAge(cachePolicyTag.cacheRetentionPolicyInSeconds ?: Integer.MAX_VALUE, TimeUnit.SECONDS)
                   .build())
-          CachePolicy.SERVER -> {/* Do nothing */
+          CachePolicy.SERVER             ->
+          {/* Do nothing */
           }
-          CachePolicy.NO_CACHE -> firstRequestBuilder.cacheControl(CacheControl.Builder().noStore().build())
+          CachePolicy.NO_CACHE           -> firstRequestBuilder.cacheControl(CacheControl.Builder().noStore().build())
         }
 
         val firstTry = chain.proceed(firstRequestBuilder.build())
         val secondRequestBuilder = chain.request().newBuilder()
 
-        if (firstTry.code() == ONLY_CACHE_UNSATISFIABLE_ERROR_CODE && cachePolicy == CachePolicy.CACHE_THEN_NETWORK) {
+        if (firstTry.code() == ONLY_CACHE_UNSATISFIABLE_ERROR_CODE && cachePolicy == CachePolicy.CACHE_THEN_NETWORK)
+        {
           debug("Call of ${firstTry.request().method()} to ${firstTry.request().url()} with cache policy ${CachePolicy.CACHE_THEN_NETWORK} failed to find a cached response. Trying call to network.")
           secondRequestBuilder.cacheControl(CacheControl.FORCE_NETWORK)
         }
-        else if (firstTry.isSuccessful == false && cachePolicy == CachePolicy.NETWORK_THEN_CACHE) {
+        else if (!firstTry.isSuccessful && cachePolicy == CachePolicy.NETWORK_THEN_CACHE)
+        {
           debug("Call of ${firstTry.request().method()} to ${firstTry.request().url()} with cache policy ${CachePolicy.NETWORK_THEN_CACHE} failed to find a network response. Trying call to cache.")
           secondRequestBuilder.cacheControl(CacheControl.FORCE_CACHE)
         }
-        else if (firstTry.code() == ONLY_CACHE_UNSATISFIABLE_ERROR_CODE && cachePolicy == CachePolicy.ONLY_CACHE) {
+        else if (firstTry.code() == ONLY_CACHE_UNSATISFIABLE_ERROR_CODE && cachePolicy == CachePolicy.ONLY_CACHE)
+        {
           debug("Call of ${firstTry.request().method()} to ${firstTry.request().url()} with cache policy ${CachePolicy.ONLY_CACHE} failed to find a cached response. Failing.")
           throw Values.CacheException(firstTry.message(), Exception())
         }
-        else if (firstTry.isSuccessful == false) {
-          debug("Call of ${firstTry.request().method()} to ${firstTry.request().url()} with cache policy ${cachePolicy} failed to find a response. Failing.")
+        else if (!firstTry.isSuccessful)
+        {
+          debug("Call of ${firstTry.request().method()} to ${firstTry.request().url()} with cache policy $cachePolicy failed to find a response. Failing.")
           throw WebServiceClient.CallException(firstTry.message(), firstTry.code())
         }
-        else {
-          debug("Call of ${firstTry.request().method()} to ${firstTry.request().url()} with cache policy ${cachePolicy} successful.")
+        else
+        {
+          debug("Call of ${firstTry.request().method()} to ${firstTry.request().url()} with cache policy $cachePolicy successful.")
           return firstTry
         }
 
         val secondTry = chain.proceed(secondRequestBuilder.build())
 
-        if (cachePolicy == CachePolicy.NETWORK_THEN_CACHE && secondTry.code() == ONLY_CACHE_UNSATISFIABLE_ERROR_CODE) {
+        if (cachePolicy == CachePolicy.NETWORK_THEN_CACHE && secondTry.code() == ONLY_CACHE_UNSATISFIABLE_ERROR_CODE)
+        {
           debug("Second call of ${firstTry.request().method()} to ${firstTry.request().url()} with cache policy ${CachePolicy.NETWORK_THEN_CACHE} failed to find a cached response. Failing.")
           throw Values.CacheException(firstTry.message(), Exception())
         }
-        else if (secondTry.isSuccessful == false) {
+        else if (!secondTry.isSuccessful)
+        {
           debug("Second call of ${firstTry.request().method()} to ${firstTry.request().url()} with cache policy ${CachePolicy.CACHE_THEN_NETWORK} failed to find a network response. Failing.")
           throw WebServiceClient.CallException(firstTry.message(), firstTry.code())
         }
-        else {
-          debug("Second call of ${firstTry.request().method()} to ${firstTry.request().url()} with cache policy ${cachePolicy} was successful.")
+        else
+        {
+          debug("Second call of ${firstTry.request().method()} to ${firstTry.request().url()} with cache policy $cachePolicy was successful.")
           return secondTry
         }
       }
       throw IllegalStateException("Cache Policy is malformed")
     }
+
+    fun debug(message: String)
+    {
+      if (log.isDebugEnabled)
+      {
+        log.debug(message)
+      }
+    }
   }
 
-  enum class CachePolicy {
+  enum class CachePolicy
+  {
+
     ONLY_CACHE, // Fetch in cache or fail
     CACHE_THEN_NETWORK, // Fetch in cache then fetch to network then cache or fetch to network then cache or fail
     ONLY_NETWORK, // Fetch to network or fail then cache
@@ -103,63 +125,39 @@ abstract class RetrofitWebServiceCaller<API>(api: Class<API>, baseUrl: String, c
     NO_CACHE // Fetch to network or fail
   }
 
-  companion object {
+  companion object
+  {
+
+    private const val ONLY_CACHE_UNSATISFIABLE_ERROR_CODE = 504
     const val CONNECT_TIMEOUT = 10 * 1000L        // 10 s
     const val READ_TIMEOUT = 10 * 1000L        // 10 s
     const val WRITE_TIMEOUT = 10 * 1000L        // 10 s
     const val CACHE_SIZE = 10 * 1024 * 1024L // 10 Mb
   }
 
-  val connectTimeout: Long
-  val readTimeout: Long
-  val writeTimeout: Long
-  val cacheSize: Long
-  val defaultCachePolicy: CachePolicy
-  val log = LoggerFactory.getInstance(RetrofitWebServiceCaller::class.java)
+  protected open val log: Logger by lazy { LoggerFactory.getInstance(RetrofitWebServiceCaller::class.java) }
 
-  private val mapper = ObjectMapper()
+  private val httpClient: OkHttpClient by lazy {
+    computeHttpClient()
+  }
 
-  private var cache: Cache? = null
-
-  private var httpClient: OkHttpClient
-
-  protected val service: API
-
-  init {
-    this.connectTimeout = connectTimeout
-    this.readTimeout = readTimeout
-    this.writeTimeout = writeTimeout
-    this.cacheSize = cacheSize
-    this.defaultCachePolicy = defaultCachePolicy
-
-    this.httpClient = OkHttpClient.Builder()
-        .connectTimeout(connectTimeout, TimeUnit.MILLISECONDS)
-        .readTimeout(readTimeout, TimeUnit.MILLISECONDS)
-        .writeTimeout(writeTimeout, TimeUnit.MILLISECONDS)
-        .addInterceptor(CacheInterceptor())
-        .build()
-
-    this.service = Retrofit
+  protected open val service: API by lazy {
+    val serviceBuilder = Retrofit
         .Builder()
         .baseUrl(baseUrl)
         .client(this.httpClient)
-        .addConverterFactory(JacksonConverterFactory.create())
-        .addConverterFactory(ScalarsConverterFactory.create())
-        .build()
-        .create(api)
-  }
 
-  var cacheDir: File? = null
-    set(cacheDir) {
-      cacheDir?.let { cacheDirectory ->
-        this.cache = Cache(cacheDirectory, cacheSize)
-        cacheDirectory.setReadable(true)
-        this.httpClient = this.httpClient.newBuilder().cache(cache).build()
-      }
+    for (converterFactory in converterFactories)
+    {
+      serviceBuilder.addConverterFactory(converterFactory)
     }
 
+    serviceBuilder.build().create(api)
+  }
+
   @WorkerThread
-  protected fun <T : Any> execute(clazz: Class<T>, call: Call<T>?, withCachePolicy: CachePolicy = defaultCachePolicy, withCacheRetentionTimeInSeconds: Int? = null): T? {
+  protected fun <T : Any> execute(clazz: Class<T>, call: Call<T>?, withCachePolicy: CachePolicy = defaultCachePolicy, withCacheRetentionTimeInSeconds: Int? = null): T?
+  {
     // Redo the request so you can tune the cache
     call?.request()?.let { request ->
       debug("Starting execution of call ${request.method()} to ${request.url()} with cache policy ${withCachePolicy.name}")
@@ -168,12 +166,38 @@ abstract class RetrofitWebServiceCaller<API>(api: Class<API>, baseUrl: String, c
           .build()
 
       val responseBody = httpClient.newCall(newRequest).execute().body()?.string()
-      return mapper.readValue(responseBody, clazz)
+      return mapResponseToObject(responseBody, clazz)
     } ?: return null
   }
 
+  abstract fun <T> mapResponseToObject(responseBody: String?, clazz: Class<T>): T?
+
+  //return getApplicationContext().getCacheDir() should do the job for most cases
+  open fun cacheDir(): File?
+  {
+    return null
+  }
+
+  open fun computeHttpClient(): OkHttpClient
+  {
+    val okHttpClientBuilder = OkHttpClient.Builder()
+        .connectTimeout(connectTimeout, TimeUnit.MILLISECONDS)
+        .readTimeout(readTimeout, TimeUnit.MILLISECONDS)
+        .writeTimeout(writeTimeout, TimeUnit.MILLISECONDS)
+        .addInterceptor(CacheInterceptor())
+
+    cacheDir()?.let { cacheDirectory ->
+      val cache = Cache(cacheDirectory, cacheSize)
+      cacheDirectory.setReadable(true)
+      okHttpClientBuilder.cache(cache).build()
+    }
+
+    return okHttpClientBuilder.build()
+  }
+
   @WorkerThread
-  protected fun <T : Any> execute(call: Call<T>?, withCachePolicy: CachePolicy = defaultCachePolicy, withCacheRetentionTimeInSeconds: Int? = null): String? {
+  protected fun <T : Any> execute(call: Call<T>?, withCachePolicy: CachePolicy = defaultCachePolicy, withCacheRetentionTimeInSeconds: Int? = null): String?
+  {
     // Redo the request so you can tune the cache
     call?.request()?.let { request ->
       debug("Starting execution of call ${request.method()} to ${request.url()} with cache policy ${withCachePolicy.name}")
@@ -182,10 +206,12 @@ abstract class RetrofitWebServiceCaller<API>(api: Class<API>, baseUrl: String, c
           .build()
 
       val response: Response? = {
-        try {
+        try
+        {
           (httpClient.newCall(newRequest)).execute()
         }
-        catch (exception: Exception) {
+        catch (exception: Exception)
+        {
           null
         }
       }()
@@ -193,8 +219,10 @@ abstract class RetrofitWebServiceCaller<API>(api: Class<API>, baseUrl: String, c
     } ?: return null
   }
 
-  fun debug(message: String) {
-    if (log.isDebugEnabled) {
+  private fun debug(message: String)
+  {
+    if (log.isDebugEnabled)
+    {
       log.debug(message)
     }
   }
