@@ -1,4 +1,4 @@
-package com.monirapps.retrofitsample;
+package com.smartnsoft.retrofitsample.bo;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -18,4 +18,6 @@ public class IP
   {
     this.origin = origin;
   }
+
+
 }

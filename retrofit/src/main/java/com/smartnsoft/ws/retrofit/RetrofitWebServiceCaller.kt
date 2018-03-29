@@ -170,6 +170,18 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>, baseUrl: Strin
     } ?: return null
   }
 
+  protected fun <T: Any> executeResponse(call: Call<T>?, withCachePolicy: CachePolicy = defaultCachePolicy, withCacheRetentionTimeInSeconds: Int? = null) : Response? {
+    // Redo the request so you can tune the cache
+    call?.request()?.let { request ->
+      debug("Starting execution of call ${request.method()} to ${request.url()} with cache policy ${withCachePolicy.name}")
+      val newRequest = request.newBuilder()
+          .tag(CachePolicyTag(withCachePolicy, withCacheRetentionTimeInSeconds))
+          .build()
+
+      return httpClient.newCall(newRequest).execute()
+    } ?: return null
+  }
+
   abstract fun <T> mapResponseToObject(responseBody: String?, clazz: Class<T>): T?
 
   //return getApplicationContext().getCacheDir() should do the job for most cases
@@ -206,14 +218,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>, baseUrl: Strin
           .build()
 
       val response: Response? = {
-        try
-        {
-          (httpClient.newCall(newRequest)).execute()
-        }
-        catch (exception: Exception)
-        {
-          null
-        }
+        (httpClient.newCall(newRequest)).execute()
       }()
       return response?.body()?.string()
     } ?: return null
