@@ -5,7 +5,6 @@ import android.app.Application;
 import com.smartnsoft.retrofitsample.ws.MyWebServiceCaller;
 
 /**
- *
  * @author David Fournier
  * @since 2018.03.28
  */
@@ -17,6 +16,6 @@ public class MyApplication
   public void onCreate()
   {
     super.onCreate();
-    MyWebServiceCaller.INSTANCE.setup(getApplicationContext());
+    MyWebServiceCaller.INSTANCE.cacheDir(getApplicationContext().getCacheDir());
   }
 }

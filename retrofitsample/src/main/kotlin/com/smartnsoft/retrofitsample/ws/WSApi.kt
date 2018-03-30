@@ -17,7 +17,7 @@ interface WSApi
   companion object Constants
   {
 
-    val url = "http://httpbin.org/"
+    const val url = "http://httpbin.org/"
   }
 
   @GET("get")

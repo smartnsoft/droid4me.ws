@@ -14,40 +14,38 @@ import java.io.File
  * @author David Fournier
  * @since 2017.10.27
  */
-object MyWebServiceCaller : JacksonRetrofitWebServiceCaller<WSApi>(api = WSApi::class.java, baseUrl = WSApi.url) {
+object MyWebServiceCaller :
+    JacksonRetrofitWebServiceCaller<WSApi>(api = WSApi::class.java, baseUrl = WSApi.url)
+{
 
-  lateinit var context: Context
-
-  fun setup(context: Context) {
-    MyWebServiceCaller.context = context
-  }
-
-  fun getString(): String? {
+  fun getString(): String?
+  {
     return execute(service.getString())
   }
 
-  fun getIp(): IP? {
+  fun getIp(): IP?
+  {
     return execute(IP::class.java, service.getIp(), CachePolicy.ONLY_CACHE)
   }
 
-  fun delete(): String? {
+  fun delete(): String?
+  {
     return execute(service.delete())
   }
 
-  fun post(ip: String): PostResponse? {
+  fun post(ip: String): PostResponse?
+  {
     return execute(PostResponse::class.java, service.post(ip))
   }
 
-  fun put(ip: String): PostResponse? {
+  fun put(ip: String): PostResponse?
+  {
     return execute(PostResponse::class.java, service.put(ip))
   }
 
-  fun status(code: Int): Response? {
+  fun status(code: Int): Response?
+  {
     return executeResponse(service.status(code))
   }
 
-  override fun cacheDir(): File?
-  {
-    return context.cacheDir
-  }
 }
