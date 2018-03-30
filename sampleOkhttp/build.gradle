@@ -29,6 +29,7 @@ android
 dependencies
 {
   implementation ("com.android.support:appcompat-v7:27.1.0")
+  implementation ("com.google.guava:guava:11.0.2")
 
   implementation(project(":okhttp"))
 }

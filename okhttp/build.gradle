@@ -13,7 +13,7 @@ android
     targetSdkVersion 27
 
     versionCode 13
-    versionName "1.1.0"
+    versionName "1.1.1"
   }
 
   buildTypes
@@ -30,11 +30,11 @@ android
 dependencies
 {
   //Smart&Soft
-  api ("com.smartnsoft:droid4me:2.7.0")
+  api ("com.smartnsoft:droid4me:2.8.0")
   api ("com.smartnsoft:droid4me.ext:2.7.0")
 
   //Third party libraries
-  api ("com.squareup.okhttp3:okhttp:3.8.0")
+  api ("com.squareup.okhttp3:okhttp:3.10.0")
 
 }
 
