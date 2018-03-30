@@ -12,8 +12,8 @@ android
     minSdkVersion 14
     targetSdkVersion 27
 
-    versionCode 11
-    versionName "1.0.1.003-SNAPSHOT"
+    versionCode 13
+    versionName "1.1.0"
   }
 
   buildTypes
@@ -30,11 +30,12 @@ android
 dependencies
 {
   //Smart&Soft
-  implementation ("com.smartnsoft:droid4me:2.5.3")
-  implementation ("com.smartnsoft:droid4me.ext:2.5.3")
+  implementation ("com.smartnsoft:droid4me:2.6.0")
+  implementation ("com.smartnsoft:droid4me.ext:2.6.0")
 
   //Third party libraries
-  implementation ("com.squareup.okhttp3:okhttp:3.8.0")
+  api ("com.squareup.okhttp3:okhttp:3.8.0")
+
 }
 
 task sourcesJar(type: Jar) {

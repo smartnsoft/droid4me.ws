@@ -261,8 +261,19 @@ public abstract class OkHttpClientWebServiceCaller
     return new OkHttpClient.Builder();
   }
 
-  protected boolean onStatusCodeNotOk(String uri, CallType callType, Request request, Response response,
-      int attemptsCount)
+  /**
+   * Invoked when the result of the HTTP request is not <code>20X</code>. The default implementation logs the problem and throws an exception.
+   *
+   * @param uri           the URI of the HTTP call
+   * @param callType      the type of the HTTP method
+   * @param request       the original request
+   * @param headers       the original headers of the request. They can be edited in order to manage some scenarios with tokens
+   * @param attemptsCount the number of attempts that have been run for this HTTP method. Starts at <code>1</code>
+   * @return {@code true} if you want the request to be re-run if it has failed
+   * @throws CallException if you want the call to be considered as not OK
+   */
+  protected boolean onStatusCodeNotOk(String uri, CallType callType, Request request, Map<String, String> headers,
+      Response response, int attemptsCount)
       throws CallException
   {
     final String message = "The result code of the call to the web method '" + uri + "' is not OK (not 20X). Status: " + (TextUtils.isEmpty(response.message()) == false ? response.message() : "") + " (" + response.code() + ")";
@@ -540,13 +551,14 @@ public abstract class OkHttpClientWebServiceCaller
     if (attemptsCount == 0)
     {
       requestBuilder.url(uri);
+    }
 
-      if (headers != null && headers.isEmpty() == false)
+    requestBuilder.headers(new Headers.Builder().build());
+    if (headers != null && headers.isEmpty() == false)
+    {
+      for (final Map.Entry<String, String> header : headers.entrySet())
       {
-        for (final Map.Entry<String, String> header : headers.entrySet())
-        {
-          requestBuilder.addHeader(header.getKey(), header.getValue());
-        }
+        requestBuilder.addHeader(header.getKey(), header.getValue());
       }
     }
 
@@ -638,7 +650,7 @@ public abstract class OkHttpClientWebServiceCaller
 
     if (!(statusCode >= HttpURLConnection.HTTP_OK && statusCode <= HttpURLConnection.HTTP_MULT_CHOICE))
     {
-      if (onStatusCodeNotOk(uri, callType, request, response, attemptsCount + 1) == true)
+      if (onStatusCodeNotOk(uri, callType, request, headers, response, attemptsCount + 1) == true)
       {
         return performHttpRequest(uri, callType, headers, paramaters, body, files, requestBuilder, attemptsCount + 1);
       }
