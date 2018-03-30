@@ -1,0 +1,4 @@
+<resources>
+  <string name="app_name">Retrofit Web Service Caller Sample</string>
+  <string name="description">Check logs to see the call responses</string>
+</resources>
