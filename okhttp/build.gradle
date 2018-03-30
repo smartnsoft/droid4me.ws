@@ -35,6 +35,7 @@ dependencies
 
   //Third party libraries
   api ("com.squareup.okhttp3:okhttp:3.8.0")
+
 }
 
 task sourcesJar(type: Jar) {
@@ -154,12 +155,12 @@ uploadArchives
     {
       repository(url: "https://api.bintray.com/maven/smartnsoft/maven/okhttpwebservicecaller/;publish=1")
       {
-        authentication(userName: bintrayUsername, password: bintrayKey)
+        authentication(userName: findProperty("bintrayUsername") ?: "", password: findProperty("bintrayKey") ?: "")
       }
 
-      snapshotRepository(url: nexusSnapshotUrl)
+      snapshotRepository(url: findProperty("nexusSnapshotUrl") ?: "")
       {
-        authentication(userName: nexusUsername, password: nexusPassword)
+        authentication(userName: findProperty("nexusUsername") ?: "", password: findProperty("nexusPassword") ?: "")
       }
 
       pom.project
