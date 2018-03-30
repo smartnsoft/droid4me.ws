@@ -1,5 +1,8 @@
 apply plugin: "com.android.library"
 apply plugin: "kotlin-android"
+apply plugin: "com.jfrog.bintray"
+apply plugin: "maven"
+apply plugin: "maven-publish"
 
 android
 {
@@ -41,4 +44,141 @@ dependencies
   implementation ("com.squareup.retrofit2:converter-scalars:2.3.0")
   implementation ("com.squareup.retrofit2:converter-jackson:2.3.0")
   api ("com.fasterxml.jackson.core:jackson-databind:2.9.2")
+}
+
+task sourcesJar(type: Jar) {
+  classifier = "sources"
+  from android.sourceSets.main.java.srcDirs
+}
+
+task javadoc(type: Javadoc) {
+  title = "retrofit API"
+  description "Javadoc for the retrofit web service caller implementation"
+  source = android.sourceSets.main.java.srcDirs
+
+  options.charSet = "UTF-8"
+  options.overview = "src/main/javadoc/overview.html"
+  options.links = ["http://docs.oracle.com/javase/7/docs/api/", "http://d.android.com/reference/"]
+
+  classpath += project.files(project.android.getBootClasspath().join(File.pathSeparator))
+  failOnError = false
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+  classifier = "javadoc"
+  from javadoc.destinationDir
+  // options.encoding = 'UTF-8'
+}
+
+artifacts
+{
+  archives javadocJar
+  archives sourcesJar
+}
+
+def pomConfig = {
+  licenses
+  {
+    license
+    {
+      name "MIT License (MIT)"
+      url "https://opensource.org/licenses/MIT"
+      distribution "repo"
+    }
+  }
+}
+
+publishing
+{
+  publications
+  {
+    ReleasePublication(MavenPublication)
+    {
+      artifact sourcesJar
+      artifact javadocJar
+      groupId "com.smartnsoft"
+      artifactId "retrofitwebservicecaller"
+      version android.defaultConfig.versionName
+
+      pom.withXml
+      {
+        def root = asNode()
+        root.appendNode("description", "extension of the droid4me framework which contains the okhttp web service caller implementation")
+        root.appendNode("name", "retrofitwebservicecaller")
+        root.appendNode("url", "https://github.com/smartnsoft/droid4me.ws")
+        root.children().last() + pomConfig
+      }
+    }
+  }
+}
+
+//https://gist.github.com/bugs84/b7887fb5d7f9f2d484b8
+publishing.publications.all
+{
+  pom.withXml
+  {
+    asNode().dependencies."*".findAll()
+    {
+      it.scope.text() == "runtime" && project.configurations.compile.allDependencies.find { dep ->
+        dep.name == it.artifactId.text()
+      }
+    }.each
+    {
+      it.scope*.value = "compile"
+    }
+  }
+}
+
+bintray
+{
+  user = bintrayUsername
+  key = bintrayKey
+
+  publications = ["ReleasePublication"]
+
+  pkg
+  {
+    repo = "maven"
+    name = "retrofitwebservicecaller"
+    userOrg = "smartnsoft"
+    licenses = ["MIT"]
+    vcsUrl = "https://github.com/smartnsoft/droid4me.ws.git"
+    publish = true
+
+    version
+    {
+      name = android.defaultConfig.versionName
+      desc = "extension of the droid4me framework which contains the retrofit web service caller implementation"
+      released  = new Date()
+      vcsTag = "retrofitwebservicecaller-" + android.defaultConfig.versionName
+    }
+  }
+}
+
+uploadArchives
+{
+  repositories
+  {
+    mavenDeployer
+    {
+      repository(url: "https://api.bintray.com/maven/smartnsoft/maven/retrofitwebservicecaller/;publish=1")
+      {
+        authentication(userName: findProperty("bintrayUsername") ?: "", password: findProperty("bintrayKey") ?: "")
+      }
+
+      snapshotRepository(url: findProperty("nexusSnapshotUrl") ?: "")
+      {
+        authentication(userName: findProperty("nexusUsername") ?: "", password: findProperty("nexusPassword") ?: "")
+      }
+
+      pom.project
+      {
+        name "retrofitwebservicecaller"
+        groupId "com.smartnsoft"
+        artifactId "retrofitwebservicecaller"
+        version android.defaultConfig.versionName
+        packaging "aar"
+      }
+    }
+  }
 }

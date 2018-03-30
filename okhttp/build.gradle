@@ -97,7 +97,7 @@ publishing
         def root = asNode()
         root.appendNode("description", "extension of the droid4me framework which contains the okhttp web service caller implementation")
         root.appendNode("name", "okhttpwebservicecaller")
-        root.appendNode("url", "hhttps://github.com/smartnsoft/droid4me.ws")
+        root.appendNode("url", "https://github.com/smartnsoft/droid4me.ws")
         root.children().last() + pomConfig
       }
     }
