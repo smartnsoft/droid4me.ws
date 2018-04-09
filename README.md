@@ -2,7 +2,7 @@
 [![TeamCity status](https://ci.smartnsoft.com/app/rest/builds/buildType(id:smartnsoft_droid4me_ws_android)/statusIcon)](https://ci.smartnsoft.com/viewType.html?buildTypeId=smartnsoft_droid4me_ws_android)
 
 # droid4me.ws
-![image](https://raw.githubusercontent.com/smartnsoft/droid4me.ws/sample/banner.png)
+![image](https://raw.githubusercontent.com/smartnsoft/droid4me.ws/develop/banner.png)
 
 droid4me.ws a is an extension of the Android [droid4me framework](https://github.com/smartnsoft/droid4me) which contains several web service caller implementation.
 
