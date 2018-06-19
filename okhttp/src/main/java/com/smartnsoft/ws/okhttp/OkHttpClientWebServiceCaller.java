@@ -63,7 +63,7 @@ public abstract class OkHttpClientWebServiceCaller
 
   public enum RequestBodyType
   {
-    FormBody, MultipartBody
+    FormBody, MultipartBody, JsonBody
   }
 
   protected final static Logger log = LoggerFactory.getInstance(OkHttpClientWebServiceCaller.class);
@@ -453,12 +453,24 @@ public abstract class OkHttpClientWebServiceCaller
       return Util.EMPTY_REQUEST;
     }
 
-    if (getBodyType(uri, callType, headers, parameters, body, files) == RequestBodyType.MultipartBody)
+    final RequestBodyType bodyType = getBodyType(uri, callType, headers, parameters, body, files);
+
+    if (bodyType == RequestBodyType.MultipartBody)
     {
       return computeMultipartBody(parameters, body, files);
     }
 
+    if (bodyType == RequestBodyType.JsonBody)
+    {
+      return computeJsonBody(body);
+    }
+
     return computeFormBody(parameters);
+  }
+
+  private RequestBody computeJsonBody(String body)
+  {
+    return RequestBody.create(MediaType.parse("application/json; charset=utf-8"), body);
   }
 
   private RequestBody computeFormBody(Map<String, String> parameters)

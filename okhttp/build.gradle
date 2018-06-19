@@ -35,7 +35,6 @@ dependencies
 
   //Third party libraries
   api ("com.squareup.okhttp3:okhttp:3.10.0")
-
 }
 
 task sourcesJar(type: Jar) {
