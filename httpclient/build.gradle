@@ -50,12 +50,12 @@ uploadArchives
     {
       repository(url: nexusReleaseUrl)
       {
-        authentication(userName: nexusUsername, password: nexusPassword)
+        authentication(userName: findProperty("nexusUsername") ?: "", password: findProperty("nexusPassword") ?: "")
       }
 
       snapshotRepository(url: nexusSnapshotUrl)
       {
-        authentication(userName: nexusUsername, password: nexusPassword)
+        authentication(userName: findProperty("nexusUsername") ?: "", password: findProperty("nexusPassword") ?: "")
       }
 
       pom.project

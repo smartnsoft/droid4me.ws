@@ -131,8 +131,8 @@ publishing.publications.all
 
 bintray
 {
-  user = bintrayUsername
-  key = bintrayKey
+  user = findProperty("bintrayUsername") ?: ""
+  key = findProperty("bintrayKey") ?: ""
 
   publications = ["ReleasePublication"]
 
