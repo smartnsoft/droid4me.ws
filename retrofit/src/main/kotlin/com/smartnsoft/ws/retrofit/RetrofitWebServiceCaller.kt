@@ -5,7 +5,11 @@ import com.smartnsoft.droid4me.cache.Values
 import com.smartnsoft.droid4me.log.Logger
 import com.smartnsoft.droid4me.log.LoggerFactory
 import com.smartnsoft.droid4me.ws.WebServiceClient
-import okhttp3.*
+import okhttp3.Cache
+import okhttp3.CacheControl
+import okhttp3.Interceptor
+import okhttp3.OkHttpClient
+import okhttp3.Response
 import retrofit2.Call
 import retrofit2.Converter
 import retrofit2.Retrofit
@@ -26,7 +30,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>, baseUrl: Strin
 
   // This class is instantiated only once and does not leak as RetrofitWebServiceCaller is a Singleton.
   // So it is OK to declare it `inner`, to pass the `isConnected` boolean.
-  private inner class CacheInterceptor : Interceptor
+  inner class CacheInterceptor(val shouldReturnErrorResponse: Boolean = false) : Interceptor
   {
 
     val log: Logger by lazy { LoggerFactory.getInstance(CacheInterceptor::class.java) }
@@ -97,7 +101,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>, baseUrl: Strin
         else if (!firstTry.isSuccessful)
         {
           debug("Call of ${firstTry.request().method()} to ${firstTry.request().url()} with cache policy $cachePolicy failed to find a response. Failing.")
-          throw WebServiceClient.CallException(firstTry.message(), firstTry.code())
+          return onStatusCodeNotOk(firstTry)
         }
         else
         {
@@ -114,8 +118,8 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>, baseUrl: Strin
         }
         else if (!secondTry.isSuccessful)
         {
-          debug("Second call of ${firstTry.request().method()} to ${firstTry.request().url()} with cache policy ${CachePolicy.CACHE_THEN_NETWORK} failed to find a network response. Failing.")
-          throw WebServiceClient.CallException(firstTry.message(), firstTry.code())
+          debug("Second call of ${secondTry.request().method()} to ${secondTry.request().url()} with cache policy ${CachePolicy.CACHE_THEN_NETWORK} failed to find a network response. Failing.")
+          return onStatusCodeNotOk(secondTry)
         }
         else
         {
@@ -133,6 +137,20 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>, baseUrl: Strin
         log.debug(message)
       }
     }
+
+    @Throws(WebServiceClient.CallException::class)
+    fun onStatusCodeNotOk(response: Response): Response
+    {
+      if (shouldReturnErrorResponse.not())
+      {
+        throw WebServiceClient.CallException(response.message(), response.code())
+      }
+      else
+      {
+        return response
+      }
+    }
+
   }
 
   enum class CachePolicy
@@ -172,7 +190,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>, baseUrl: Strin
     serviceBuilder.build().create(api)
   }
 
-  protected var isConnected = true
+  open var isConnected = true
 
   private val httpClient: OkHttpClient by lazy {
     computeHttpClient()
@@ -188,7 +206,11 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>, baseUrl: Strin
         .connectTimeout(connectTimeout, TimeUnit.MILLISECONDS)
         .readTimeout(readTimeout, TimeUnit.MILLISECONDS)
         .writeTimeout(writeTimeout, TimeUnit.MILLISECONDS)
-        .addInterceptor(CacheInterceptor())
+
+    val interceptorList = setupInterceptors()
+    interceptorList.forEach { interceptor ->
+      okHttpClientBuilder.addInterceptor(interceptor)
+    }
 
     cacheDir?.let { cacheDirectory ->
       val cache = Cache(cacheDirectory, cacheSize)
@@ -197,6 +219,11 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>, baseUrl: Strin
     }
 
     return okHttpClientBuilder.build()
+  }
+
+  open fun setupInterceptors(): List<Interceptor>
+  {
+    return listOf(CacheInterceptor())
   }
 
   fun cacheDir(cacheDir: File)
