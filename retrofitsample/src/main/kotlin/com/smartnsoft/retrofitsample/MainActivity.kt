@@ -5,8 +5,7 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import com.smartnsoft.droid4me.app.SmartCommands
-import com.smartnsoft.droid4me.ws.WebServiceClient
-import com.smartnsoft.retrofitsample.ws.MyWebServiceCaller
+import com.smartnsoft.retrofitsample.ws.TimeWebServiceCaller
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity :
@@ -23,7 +22,6 @@ class MainActivity :
   {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.activity_main)
-
     rootView.setOnClickListener {
 
       SmartCommands.execute(object : SmartCommands.GuardedCommand<Context>(applicationContext)
@@ -32,6 +30,7 @@ class MainActivity :
         override fun onThrowable(throwable: Throwable): Throwable?
         {
           Log.w(TAG, "Error", throwable)
+
           return null
         }
 
@@ -39,32 +38,38 @@ class MainActivity :
         override fun runGuarded()
         {
           Log.d(TAG, "Launching thread")
-          MyWebServiceCaller.getString()?.also {
-            Log.d(TAG, it)
+          TimeWebServiceCaller.getTime()?.also {
+            Log.d(TAG, "getTime: $it")
+          }
+          /*MyWebServiceCaller.getString()?.also {
+            Log.d(TAG, "getString (headers): ${it.headers()}")
+            Log.d(TAG, "getString (body): ${it.body()?.string()}")
           }
           MyWebServiceCaller.getIp()?.also {
-            Log.d(TAG, it.origin)
+            Log.d(TAG, "getIp: ${it.origin}")
           }
           MyWebServiceCaller.delete().also {
-            Log.d(TAG, "deletion complete")
+            Log.d(TAG, "deletion complete: $it")
           }
           MyWebServiceCaller.post("127.0.0.1")?.also {
-            Log.d(TAG, it.form.ip)
+            Log.d(TAG, "post: ${it.form.ip}")
           }
           MyWebServiceCaller.put("127.0.0.2")?.also {
-            Log.d(TAG, it.form.ip)
+            Log.d(TAG, "put: ${it.form.ip}")
           }
           MyWebServiceCaller.status(200)?.also {
-            Log.d(TAG, "Successful : ${it.isSuccessful}")
+            Log.d(TAG, "status : ${it.isSuccessful}")
           }
           try
           {
-            MyWebServiceCaller.status(400)
+            MyWebServiceCaller.status(400)?.also {
+              Log.d(TAG, "status : ${it.isSuccessful}")
+            }
           }
           catch (callException: WebServiceClient.CallException)
           {
-            Log.d(TAG, callException.message)
-          }
+            Log.d(TAG, "callException: ${callException.message}")
+          }*/
         }
 
       })

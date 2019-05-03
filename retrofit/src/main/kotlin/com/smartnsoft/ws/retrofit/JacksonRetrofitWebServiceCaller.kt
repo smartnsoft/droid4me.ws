@@ -11,8 +11,8 @@ import retrofit2.converter.scalars.ScalarsConverterFactory
  * @author David Fournier
  * @since 2018.03.26
  */
-abstract class JacksonRetrofitWebServiceCaller<API>(api: Class<API>, baseUrl: String, connectTimeout: Long = CONNECT_TIMEOUT, readTimeout: Long = READ_TIMEOUT, writeTimeout: Long = WRITE_TIMEOUT, cacheSize: Long = CACHE_SIZE, defaultCachePolicy: CachePolicy = CachePolicy.ONLY_NETWORK) :
-    RetrofitWebServiceCaller<API>(api, baseUrl, connectTimeout, readTimeout, writeTimeout, cacheSize, defaultCachePolicy, arrayOf(JacksonConverterFactory.create(), ScalarsConverterFactory.create()))
+abstract class JacksonRetrofitWebServiceCaller<API>(api: Class<API>, baseUrl: String, connectTimeout: Long = CONNECT_TIMEOUT, readTimeout: Long = READ_TIMEOUT, writeTimeout: Long = WRITE_TIMEOUT, cacheSize: Long = CACHE_SIZE, defaultCachePolicy: CachePolicy = CachePolicy.ONLY_NETWORK, defaultCacheRetentionTimeInSeconds: Int? = null) :
+    RetrofitWebServiceCaller<API>(api, baseUrl, connectTimeout, readTimeout, writeTimeout, cacheSize, defaultCachePolicy, defaultCacheRetentionTimeInSeconds, arrayOf(JacksonConverterFactory.create(), ScalarsConverterFactory.create()))
 {
 
   private val mapper = ObjectMapper()
@@ -26,11 +26,11 @@ abstract class JacksonRetrofitWebServiceCaller<API>(api: Class<API>, baseUrl: St
     catch (exception: JsonMappingException)
     {
       //TODO: open JacksonJsonParsingException in droid4me.ext
-      throw JacksonExceptions.JacksonParsingException(exception);
+      throw JacksonExceptions.JacksonParsingException(exception)
     }
     catch (exception: Exception)
     {
-      throw JacksonExceptions.JacksonParsingException(exception);
+      throw JacksonExceptions.JacksonParsingException(exception)
     }
   }
 }

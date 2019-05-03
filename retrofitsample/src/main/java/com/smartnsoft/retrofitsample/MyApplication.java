@@ -3,6 +3,7 @@ package com.smartnsoft.retrofitsample;
 import android.app.Application;
 
 import com.smartnsoft.retrofitsample.ws.MyWebServiceCaller;
+import com.smartnsoft.retrofitsample.ws.TimeWebServiceCaller;
 
 /**
  * @author David Fournier
@@ -17,5 +18,6 @@ public class MyApplication
   {
     super.onCreate();
     MyWebServiceCaller.INSTANCE.cacheDir(getApplicationContext().getCacheDir());
+    TimeWebServiceCaller.INSTANCE.cacheDir(getApplicationContext().getCacheDir());
   }
 }
