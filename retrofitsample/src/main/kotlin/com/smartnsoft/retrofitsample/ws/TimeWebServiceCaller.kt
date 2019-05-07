@@ -7,11 +7,11 @@ import com.smartnsoft.ws.retrofit.JacksonRetrofitWebServiceCaller
  * @since 2019.05.03
  */
 object TimeWebServiceCaller :
-    JacksonRetrofitWebServiceCaller<TimeApi>(api = TimeApi::class.java, baseUrl = TimeApi.url, defaultCachePolicy = CachePolicy.CACHE_THEN_NETWORK, defaultCacheRetentionTimeInSeconds = 2000)
+    JacksonRetrofitWebServiceCaller<TimeApi>(api = TimeApi::class.java, baseUrl = TimeApi.url)
 {
 
   fun getTime(): String?
   {
-    return execute(service.getTime(), withCachePolicy = CachePolicy.ONLY_CACHE)
+    return execute(service.getTime(), CachePolicy.CACHE_THEN_NETWORK, 20)
   }
 }

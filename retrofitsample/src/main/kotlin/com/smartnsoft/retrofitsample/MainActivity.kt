@@ -42,8 +42,7 @@ class MainActivity :
             Log.d(TAG, "getTime: $it")
           }
           /*MyWebServiceCaller.getString()?.also {
-            Log.d(TAG, "getString (headers): ${it.headers()}")
-            Log.d(TAG, "getString (body): ${it.body()?.string()}")
+            Log.d(TAG, "getString: $it")
           }
           MyWebServiceCaller.getIp()?.also {
             Log.d(TAG, "getIp: ${it.origin}")

@@ -15,12 +15,12 @@ import java.io.File
  * @since 2017.10.27
  */
 object MyWebServiceCaller :
-    JacksonRetrofitWebServiceCaller<WSApi>(api = WSApi::class.java, baseUrl = WSApi.url, defaultCachePolicy = CachePolicy.CACHE_THEN_NETWORK, defaultCacheRetentionTimeInSeconds = 30)
+    JacksonRetrofitWebServiceCaller<WSApi>(api = WSApi::class.java, baseUrl = WSApi.url)
 {
 
-  fun getString(): Response?
+  fun getString(): String?
   {
-    return executeResponse(service.getString())
+    return execute(service.getString())
   }
 
   fun getIp(): IP?
