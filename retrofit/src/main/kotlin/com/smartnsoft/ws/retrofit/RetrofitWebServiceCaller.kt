@@ -135,7 +135,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>, baseUrl: Strin
           {
             debug("Call of ${firstTry.request().method()} to ${firstTry.request().url()} with cache policy $cachePolicy successful.")
 
-            return firstTry
+            return rewriteResponse(firstTry, cachePolicyTag)
           }
         }
 
@@ -188,6 +188,24 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>, baseUrl: Strin
       }
     }
 
+  }
+
+  inner class NetworkInterceptor : Interceptor
+  {
+    override fun intercept(chain: Interceptor.Chain): Response?
+    {
+      val cachePolicyTag = chain.request().tag() as? CachePolicyTag
+      val cachePolicy = cachePolicyTag?.cachePolicy
+
+      if (cachePolicy != null)
+      {
+        val request = chain.request()
+
+        return rewriteResponse(chain.proceed(request), cachePolicyTag)
+      }
+
+      throw IllegalStateException("Cache Policy is malformed")
+    }
   }
 
   protected open val log: Logger by lazy { LoggerFactory.getInstance(RetrofitWebServiceCaller::class.java) }
@@ -267,7 +285,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>, baseUrl: Strin
 
   open fun setupNetworkInterceptors(): List<Interceptor>
   {
-    return emptyList()
+    return listOf(NetworkInterceptor())
   }
 
   fun cacheDir(cacheDir: File)
@@ -315,9 +333,55 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>, baseUrl: Strin
 
   private fun buildRequest(request: Request, withCachePolicy: CachePolicy = defaultCachePolicy, withCacheRetentionTimeInSeconds: Int? = defaultCacheRetentionTimeInSeconds): Request
   {
-    return request.newBuilder()
+    val newRequest = when (withCachePolicy)
+    {
+      CachePolicy.ONLY_CACHE,
+      CachePolicy.CACHE_THEN_NETWORK ->
+      {
+        getCacheRequest(request, CachePolicyTag(withCachePolicy, withCacheRetentionTimeInSeconds))
+      }
+      CachePolicy.ONLY_NETWORK,
+      CachePolicy.NETWORK_THEN_CACHE ->
+      {
+        getNetworkRequest(request,  CachePolicyTag(withCachePolicy, withCacheRetentionTimeInSeconds))
+      }
+      CachePolicy.SERVER             -> request
+    }
+
+    return newRequest.newBuilder()
         .tag(CachePolicyTag(withCachePolicy, withCacheRetentionTimeInSeconds))
         .build()
+  }
+
+  private fun rewriteResponse(response: Response, cachePolicyTag: CachePolicyTag): Response
+  {
+    if (cachePolicyTag.cachePolicy == CachePolicy.ONLY_NETWORK || cachePolicyTag.cachePolicy == CachePolicy.NETWORK_THEN_CACHE)
+    {
+      val cacheControl = if (cachePolicyTag.cacheRetentionPolicyInSeconds == null || cachePolicyTag.cacheRetentionPolicyInSeconds <= 0)
+      {
+        CacheControl.Builder()
+            .noStore()
+            .build()
+            .toString()
+      }
+      else
+      {
+        CacheControl.Builder()
+            .maxAge(cachePolicyTag.cacheRetentionPolicyInSeconds, TimeUnit.SECONDS)
+            .build()
+            .toString()
+      }
+
+      return response.newBuilder()
+          .removeHeader("Pragma")
+          .removeHeader("Cache-Control")
+          .removeHeader("Date")
+          .header("Cache-Control", cacheControl)
+          .header("Date", Date().toString())
+          .build()
+    }
+
+    return response
   }
 
   private fun getNetworkRequest(request: Request, cachePolicyTag: CachePolicyTag): Request
@@ -349,7 +413,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>, baseUrl: Strin
   {
     val cacheControl = CacheControl.Builder()
         .onlyIfCached()
-        .maxStale(cachePolicyTag.cacheRetentionPolicyInSeconds ?: 0, TimeUnit.SECONDS)
+        //.maxStale(cachePolicyTag.cacheRetentionPolicyInSeconds ?: 0, TimeUnit.SECONDS)
         .build()
         .toString()
 
