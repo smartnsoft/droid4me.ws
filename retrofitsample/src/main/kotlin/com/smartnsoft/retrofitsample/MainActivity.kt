@@ -37,9 +37,8 @@ class MainActivity :
         @Throws(Exception::class)
         override fun runGuarded()
         {
-          Log.d(TAG, "Launching thread")
           TimeWebServiceCaller.getTime()?.also {
-            Log.d(TAG, "getTime: $it")
+            Log.e(TAG, "CACHE FIRST: $it")
           }
           /*MyWebServiceCaller.getString()?.also {
             Log.d(TAG, "getString: $it")
@@ -72,6 +71,28 @@ class MainActivity :
         }
 
       })
+
+      SmartCommands.execute(object : SmartCommands.GuardedCommand<Context>(applicationContext)
+      {
+
+        override fun onThrowable(throwable: Throwable): Throwable?
+        {
+          Log.w(TAG, "Error", throwable)
+
+          return null
+        }
+
+        @Throws(Exception::class)
+        override fun runGuarded()
+        {
+          TimeWebServiceCaller.getTime2()?.also {
+            Log.w(TAG, "NETWORK FIRST: $it")
+          }
+        }
+
+      })
+
+      TimeWebServiceCaller.getCacheAsList()
     }
   }
 

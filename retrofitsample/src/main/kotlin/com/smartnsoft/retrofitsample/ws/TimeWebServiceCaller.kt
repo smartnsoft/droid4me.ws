@@ -12,6 +12,11 @@ object TimeWebServiceCaller :
 
   fun getTime(): String?
   {
-    return execute(service.getTime(), CachePolicy.CACHE_THEN_NETWORK, 10)
+    return execute(service.getTime(1), CachePolicy.CACHE_THEN_NETWORK, 10)
+  }
+
+  fun getTime2(): String?
+  {
+    return execute(service.getTime(4), CachePolicy.NETWORK_THEN_CACHE, 10)
   }
 }
