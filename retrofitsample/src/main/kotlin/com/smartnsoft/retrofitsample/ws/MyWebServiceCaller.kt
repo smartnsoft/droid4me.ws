@@ -1,12 +1,10 @@
 package com.smartnsoft.retrofitsample.ws
 
 import android.annotation.SuppressLint
-import android.content.Context
 import com.smartnsoft.retrofitsample.bo.IP
 import com.smartnsoft.retrofitsample.bo.PostResponse
 import com.smartnsoft.ws.retrofit.JacksonRetrofitWebServiceCaller
 import okhttp3.Response
-import java.io.File
 
 @SuppressLint("StaticFieldLeak")
 /**

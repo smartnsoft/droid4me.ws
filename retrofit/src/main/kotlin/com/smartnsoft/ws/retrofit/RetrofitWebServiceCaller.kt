@@ -13,6 +13,7 @@ import java.io.File
 import java.net.UnknownHostException
 import java.util.*
 import java.util.concurrent.TimeUnit
+import kotlin.collections.ArrayList
 
 /**
  *
@@ -51,26 +52,13 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>, baseUrl: Strin
 
     override fun intercept(chain: Interceptor.Chain): Response?
     {
-      val cachePolicyTag = chain.request().tag() as? CachePolicyTag
+      getCacheAsList()
+      val request = chain.request()
+      val cachePolicyTag = request.tag() as? CachePolicyTag
       val cachePolicy = cachePolicyTag?.cachePolicy
 
       if (cachePolicy != null)
       {
-        val request = when (cachePolicy)
-        {
-          CachePolicy.ONLY_CACHE,
-          CachePolicy.CACHE_THEN_NETWORK ->
-          {
-            getCacheRequest(chain.request(), cachePolicyTag)
-          }
-          CachePolicy.ONLY_NETWORK,
-          CachePolicy.NETWORK_THEN_CACHE ->
-          {
-            getNetworkRequest(chain.request(), cachePolicyTag)
-          }
-          CachePolicy.SERVER             -> chain.request()
-        }
-
         var firstTry: Response? = null
 
         try
@@ -111,13 +99,13 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>, baseUrl: Strin
               throw WebServiceClient.CallException(errorMessage, UnknownHostException())
             }
 
-            secondRequest = getNetworkRequest(chain.request(), cachePolicyTag)
+            secondRequest = buildNetworkRequest(request)
           }
           (firstTry == null || firstTry.isSuccessful.not()) && cachePolicy == CachePolicy.NETWORK_THEN_CACHE                            ->
           {
             debug("Call of ${request.method()} to ${request.url()} with cache policy ${cachePolicy.name} failed to find a network response. Trying call to cache.")
 
-            secondRequest = getCacheRequest(chain.request(), cachePolicyTag)
+            secondRequest = buildCacheRequest(request)
           }
           (firstTry == null || firstTry.code() == ONLY_CACHE_UNSATISFIABLE_ERROR_CODE) && cachePolicy == CachePolicy.ONLY_CACHE         ->
           {
@@ -135,7 +123,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>, baseUrl: Strin
           {
             debug("Call of ${firstTry.request().method()} to ${firstTry.request().url()} with cache policy $cachePolicy successful.")
 
-            return rewriteResponse(firstTry, cachePolicyTag)
+            return firstTry
           }
         }
 
@@ -199,9 +187,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>, baseUrl: Strin
 
       if (cachePolicy != null)
       {
-        val request = chain.request()
-
-        return rewriteResponse(chain.proceed(request), cachePolicyTag)
+        return rewriteResponse(chain.proceed(chain.request()), cachePolicyTag)
       }
 
       throw IllegalStateException("Cache Policy is malformed")
@@ -230,6 +216,17 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>, baseUrl: Strin
   open fun setConnectivity(isConnected: Boolean)
   {
     this.isConnected = isConnected
+  }
+
+  open fun getCacheAsList(): MutableList<Pair<String, String>>
+  {
+    val cacheEntries: MutableList<Pair<String, String>> = ArrayList()
+
+    httpClient.cache()?.urls()?.forEach { url ->
+      cacheEntries.add(Pair(url, Cache.key(HttpUrl.get(url))))
+    }
+
+    return cacheEntries
   }
 
   private var isConnected = true
@@ -338,12 +335,12 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>, baseUrl: Strin
       CachePolicy.ONLY_CACHE,
       CachePolicy.CACHE_THEN_NETWORK ->
       {
-        getCacheRequest(request, CachePolicyTag(withCachePolicy, withCacheRetentionTimeInSeconds))
+        buildCacheRequest(request)
       }
       CachePolicy.ONLY_NETWORK,
       CachePolicy.NETWORK_THEN_CACHE ->
       {
-        getNetworkRequest(request,  CachePolicyTag(withCachePolicy, withCacheRetentionTimeInSeconds))
+        buildNetworkRequest(request)
       }
       CachePolicy.SERVER             -> request
     }
@@ -353,75 +350,65 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>, baseUrl: Strin
         .build()
   }
 
-  private fun rewriteResponse(response: Response, cachePolicyTag: CachePolicyTag): Response
-  {
-    if (cachePolicyTag.cachePolicy == CachePolicy.ONLY_NETWORK || cachePolicyTag.cachePolicy == CachePolicy.NETWORK_THEN_CACHE)
-    {
-      val cacheControl = if (cachePolicyTag.cacheRetentionPolicyInSeconds == null || cachePolicyTag.cacheRetentionPolicyInSeconds <= 0)
-      {
-        CacheControl.Builder()
-            .noStore()
-            .build()
-            .toString()
-      }
-      else
-      {
-        CacheControl.Builder()
-            .maxAge(cachePolicyTag.cacheRetentionPolicyInSeconds, TimeUnit.SECONDS)
-            .build()
-            .toString()
-      }
 
-      return response.newBuilder()
-          .removeHeader("Pragma")
-          .removeHeader("Cache-Control")
-          .removeHeader("Date")
-          .header("Cache-Control", cacheControl)
-          .header("Date", Date().toString())
-          .build()
-    }
-
-    return response
-  }
-
-  private fun getNetworkRequest(request: Request, cachePolicyTag: CachePolicyTag): Request
-  {
-    val cacheControl = if (cachePolicyTag.cacheRetentionPolicyInSeconds == null || cachePolicyTag.cacheRetentionPolicyInSeconds <= 0)
-    {
-      CacheControl.Builder()
-          .noCache()
-          .noStore()
-          .build()
-          .toString()
-    }
-    else
-    {
-      CacheControl.Builder()
-          .noCache()
-          .build()
-          .toString()
-    }
-
-    return request.newBuilder()
-        .removeHeader("Pragma")
-        .removeHeader("Cache-Control")
-        .header("Cache-Control", cacheControl)
-        .build()
-  }
-
-  private fun getCacheRequest(request: Request, cachePolicyTag: CachePolicyTag): Request
+  private fun buildNetworkRequest(request: Request): Request
   {
     val cacheControl = CacheControl.Builder()
-        .onlyIfCached()
-        //.maxStale(cachePolicyTag.cacheRetentionPolicyInSeconds ?: 0, TimeUnit.SECONDS)
+        .noCache()
         .build()
         .toString()
 
     return request.newBuilder()
         .removeHeader("Pragma")
-        .removeHeader("Cache-Control")
         .header("Cache-Control", cacheControl)
         .build()
+  }
+
+  private fun buildCacheRequest(request: Request): Request
+  {
+    val cacheControl = CacheControl.Builder()
+        .onlyIfCached()
+        .build()
+        .toString()
+
+    return request.newBuilder()
+        .removeHeader("Pragma")
+        .header("Cache-Control", cacheControl)
+        .build()
+  }
+
+  private fun rewriteResponse(response: Response, cachePolicyTag: CachePolicyTag): Response
+  {
+    return when (cachePolicyTag.cachePolicy)
+    {
+      CachePolicy.ONLY_NETWORK,
+      CachePolicy.NETWORK_THEN_CACHE,
+      CachePolicy.ONLY_CACHE,
+      CachePolicy.CACHE_THEN_NETWORK ->
+      {
+        val cacheControl = if (cachePolicyTag.cacheRetentionPolicyInSeconds == null || cachePolicyTag.cacheRetentionPolicyInSeconds < 0)
+        {
+          CacheControl.Builder()
+              .noStore()
+              .build()
+              .toString()
+        }
+        else
+        {
+          CacheControl.Builder()
+              .maxAge(cachePolicyTag.cacheRetentionPolicyInSeconds, TimeUnit.SECONDS)
+              .build()
+              .toString()
+        }
+
+        response.newBuilder()
+            .removeHeader("Pragma")
+            .header("Cache-Control", cacheControl)
+            .header("Date", Date().toString())
+            .build()
+      }
+      CachePolicy.SERVER             -> response
+    }
   }
 
   private fun debug(message: String)
