@@ -38,7 +38,7 @@ class MainActivity :
         override fun runGuarded()
         {
           TimeWebServiceCaller.getTime()?.also {
-            Log.e(TAG, "CACHE FIRST: $it")
+            Log.e(TAG, "getTime: $it")
           }
           /*MyWebServiceCaller.getString()?.also {
             Log.d(TAG, "getString: $it")
@@ -86,7 +86,7 @@ class MainActivity :
         override fun runGuarded()
         {
           TimeWebServiceCaller.getTime2()?.also {
-            Log.w(TAG, "NETWORK FIRST: $it")
+            Log.w(TAG, "getTime2: $it")
           }
         }
 

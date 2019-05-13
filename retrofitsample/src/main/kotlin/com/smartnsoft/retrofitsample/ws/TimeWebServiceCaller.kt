@@ -12,11 +12,11 @@ object TimeWebServiceCaller :
 
   fun getTime(): String?
   {
-    return execute(service.getTime(1), CachePolicy.CACHE_THEN_NETWORK, 10)
+    return execute(service.getTime(1), CachePolicy(cacheRetentionPolicyInSeconds = 20, customKey = "lol"))
   }
 
   fun getTime2(): String?
   {
-    return execute(service.getTime(4), CachePolicy.NETWORK_THEN_CACHE, 10)
+    return execute(service.getTime(2), CachePolicy(CachePolicyType.ONLY_CACHE, allowedTimeExpiredCacheInSeconds = 100, customKey = "lol"))
   }
 }
