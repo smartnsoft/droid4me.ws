@@ -19,4 +19,5 @@ object TimeWebServiceCaller :
   {
     return execute(service.getTime(2), CachePolicy(CachePolicyType.ONLY_CACHE, allowedTimeExpiredCacheInSeconds = 100, customKey = "lol"))
   }
+
 }

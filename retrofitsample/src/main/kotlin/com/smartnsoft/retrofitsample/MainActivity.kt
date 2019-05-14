@@ -92,8 +92,10 @@ class MainActivity :
 
       })
 
-      TimeWebServiceCaller.getCacheAsList()
+      TimeWebServiceCaller.getCacheEntries()
     }
   }
+
+
 
 }

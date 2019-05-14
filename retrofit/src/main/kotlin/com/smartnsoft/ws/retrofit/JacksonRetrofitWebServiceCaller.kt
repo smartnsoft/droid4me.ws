@@ -11,8 +11,8 @@ import retrofit2.converter.scalars.ScalarsConverterFactory
  * @author David Fournier
  * @since 2018.03.26
  */
-abstract class JacksonRetrofitWebServiceCaller<API>(api: Class<API>, baseUrl: String, connectTimeout: Long = CONNECT_TIMEOUT, readTimeout: Long = READ_TIMEOUT, writeTimeout: Long = WRITE_TIMEOUT, cacheSize: Long = CACHE_SIZE, defaultCachePolicyType: CachePolicyType = CachePolicyType.ONLY_NETWORK, defaultCacheRetentionTimeInSeconds: Int? = null, defaultAllowedTimeExpiredCacheInSeconds: Int? = null) :
-    RetrofitWebServiceCaller<API>(api, baseUrl, connectTimeout, readTimeout, writeTimeout, cacheSize, defaultCachePolicyType, defaultCacheRetentionTimeInSeconds, defaultAllowedTimeExpiredCacheInSeconds, arrayOf(JacksonConverterFactory.create(), ScalarsConverterFactory.create()))
+abstract class JacksonRetrofitWebServiceCaller<API>(api: Class<API>, baseUrl: String, connectTimeout: Long = CONNECT_TIMEOUT, readTimeout: Long = READ_TIMEOUT, writeTimeout: Long = WRITE_TIMEOUT, useBuiltInCache: Boolean = true, defaultCachePolicyType: CachePolicyType = CachePolicyType.ONLY_NETWORK, defaultCacheRetentionTimeInSeconds: Int? = null, defaultAllowedTimeExpiredCacheInSeconds: Int? = null) :
+    RetrofitWebServiceCaller<API>(api, baseUrl, connectTimeout, readTimeout, writeTimeout, useBuiltInCache, defaultCachePolicyType, defaultCacheRetentionTimeInSeconds, defaultAllowedTimeExpiredCacheInSeconds, arrayOf(JacksonConverterFactory.create(), ScalarsConverterFactory.create()))
 {
 
   private val mapper = ObjectMapper()
