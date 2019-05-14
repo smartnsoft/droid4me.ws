@@ -17,7 +17,7 @@ object TimeWebServiceCaller :
 
   fun getTime2(): String?
   {
-    return execute(service.getTime(2), CachePolicy(CachePolicyType.ONLY_CACHE, allowedTimeExpiredCacheInSeconds = 100, customKey = "lol"))
+    return execute(service.getTime(2), CachePolicy(FetchPolicyType.ONLY_CACHE, allowedTimeExpiredCacheInSeconds = 100, customKey = "lol"))
   }
 
 }
