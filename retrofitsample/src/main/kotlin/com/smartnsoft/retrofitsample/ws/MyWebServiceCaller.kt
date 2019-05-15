@@ -23,7 +23,17 @@ object MyWebServiceCaller :
 
   fun getIp(): IP?
   {
-    return execute(IP::class.java, service.getIp())
+    return execute(IP::class.java, service.getIp(), CachePolicy(FetchPolicyType.CACHE_THEN_NETWORK, cacheRetentionPolicyInSeconds = 20, customKey = "kiki"))
+  }
+
+  fun getIp2(): IP?
+  {
+    return execute(IP::class.java, service.getIp(), CachePolicy(FetchPolicyType.CACHE_THEN_NETWORK, allowedTimeExpiredCacheInSeconds = 100, customKey = "kikoi"))
+  }
+
+  fun getIp3(): IP?
+  {
+    return execute(IP::class.java, service.getIp(), CachePolicy(FetchPolicyType.CACHE_THEN_NETWORK, allowedTimeExpiredCacheInSeconds = 100, customKey = "kikaez"))
   }
 
   fun delete(): String?

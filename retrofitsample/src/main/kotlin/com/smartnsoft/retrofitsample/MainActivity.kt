@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import com.smartnsoft.droid4me.app.SmartCommands
+import com.smartnsoft.retrofitsample.ws.MyWebServiceCaller
 import com.smartnsoft.retrofitsample.ws.TimeWebServiceCaller
 import kotlinx.android.synthetic.main.activity_main.*
 
@@ -37,8 +38,8 @@ class MainActivity :
         @Throws(Exception::class)
         override fun runGuarded()
         {
-          TimeWebServiceCaller.getTime()?.also {
-            Log.e(TAG, "getTime: $it")
+          MyWebServiceCaller.getIp2()?.also {
+            Log.w(TAG, "getIp2: ${it.origin}")
           }
           /*MyWebServiceCaller.getString()?.also {
             Log.d(TAG, "getString: $it")
@@ -85,8 +86,28 @@ class MainActivity :
         @Throws(Exception::class)
         override fun runGuarded()
         {
-          TimeWebServiceCaller.getTime2()?.also {
-            Log.w(TAG, "getTime2: $it")
+          MyWebServiceCaller.getIp3()?.also {
+            Log.w(TAG, "getIp3: ${it.origin}")
+          }
+        }
+
+      })
+
+      SmartCommands.execute(object : SmartCommands.GuardedCommand<Context>(applicationContext)
+      {
+
+        override fun onThrowable(throwable: Throwable): Throwable?
+        {
+          Log.w(TAG, "Error", throwable)
+
+          return null
+        }
+
+        @Throws(Exception::class)
+        override fun runGuarded()
+        {
+          MyWebServiceCaller.getIp()?.also {
+            Log.w(TAG, "getIp: ${it.origin}")
           }
         }
 

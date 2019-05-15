@@ -15,7 +15,7 @@ class MyApplication : Application()
   override fun onCreate()
   {
     super.onCreate()
-    MyWebServiceCaller.setCache(applicationContext.cacheDir)
-    TimeWebServiceCaller.setCache(applicationContext.cacheDir)
+    MyWebServiceCaller.setupCache(applicationContext.cacheDir)
+    TimeWebServiceCaller.setupCache(applicationContext.cacheDir)
   }
 }

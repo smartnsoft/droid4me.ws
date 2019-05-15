@@ -1,6 +1,7 @@
 package com.smartnsoft.retrofitsample.ws
 
 import com.smartnsoft.ws.retrofit.JacksonRetrofitWebServiceCaller
+import okhttp3.Response
 
 /**
  * @author Anthony Msihid
@@ -10,14 +11,20 @@ object TimeWebServiceCaller :
     JacksonRetrofitWebServiceCaller<TimeApi>(api = TimeApi::class.java, baseUrl = TimeApi.url)
 {
 
-  fun getTime(): String?
+  fun getTime(): Response?
   {
-    return execute(service.getTime(1), CachePolicy(cacheRetentionPolicyInSeconds = 20, customKey = "lol"))
+    return executeResponse(service.getTime(1), CachePolicy(FetchPolicyType.CACHE_THEN_NETWORK, cacheRetentionPolicyInSeconds = 20, customKey = "kiki"))
   }
 
-  fun getTime2(): String?
+  fun getTime2(): Response?
   {
-    return execute(service.getTime(2), CachePolicy(FetchPolicyType.ONLY_CACHE, allowedTimeExpiredCacheInSeconds = 100, customKey = "lol"))
+    return executeResponse(service.getTime(2), CachePolicy(FetchPolicyType.ONLY_CACHE, allowedTimeExpiredCacheInSeconds = 100, customKey = "kiki"))
+  }
+
+
+  fun getTime3(): Response?
+  {
+    return executeResponse(service.getTime(1), CachePolicy(FetchPolicyType.ONLY_CACHE, allowedTimeExpiredCacheInSeconds = 100))
   }
 
 }
