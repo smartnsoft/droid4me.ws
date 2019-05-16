@@ -1,21 +1,18 @@
 package com.smartnsoft.retrofitsample.ws
 
-import android.annotation.SuppressLint
 import com.smartnsoft.retrofitsample.bo.IP
 import com.smartnsoft.retrofitsample.bo.PostResponse
 import com.smartnsoft.ws.retrofit.JacksonRetrofitWebServiceCaller
 import okhttp3.Response
 
-@SuppressLint("StaticFieldLeak")
 /**
  *
  * @author David Fournier
  * @since 2017.10.27
  */
-object MyWebServiceCaller :
-    JacksonRetrofitWebServiceCaller<WSApi>(api = WSApi::class.java, baseUrl = WSApi.url)
+object MyWebServiceCaller
+  : JacksonRetrofitWebServiceCaller<WSApi>(api = WSApi::class.java, baseUrl = WSApi.url)
 {
-
   fun getString(): String?
   {
     return execute(service.getString())
@@ -23,17 +20,17 @@ object MyWebServiceCaller :
 
   fun getIp(): IP?
   {
-    return execute(IP::class.java, service.getIp(), CachePolicy(FetchPolicyType.CACHE_THEN_NETWORK, cacheRetentionPolicyInSeconds = 20, customKey = "kiki"))
+    return execute(IP::class.java, service.getIp(), CachePolicy(FetchPolicyType.CACHE_THEN_NETWORK, cacheRetentionPolicyInSeconds = 20, customKey = "ip"))
   }
 
   fun getIp2(): IP?
   {
-    return execute(IP::class.java, service.getIp(), CachePolicy(FetchPolicyType.CACHE_THEN_NETWORK, allowedTimeExpiredCacheInSeconds = 100, customKey = "kikoi"))
+    return execute(IP::class.java, service.getIp(), CachePolicy(FetchPolicyType.CACHE_THEN_NETWORK, allowedTimeExpiredCacheInSeconds = 100, customKey = "ip2"))
   }
 
   fun getIp3(): IP?
   {
-    return execute(IP::class.java, service.getIp(), CachePolicy(FetchPolicyType.CACHE_THEN_NETWORK, allowedTimeExpiredCacheInSeconds = 100, customKey = "kikaez"))
+    return execute(IP::class.java, service.getIp(), CachePolicy(FetchPolicyType.CACHE_THEN_NETWORK, allowedTimeExpiredCacheInSeconds = 100, customKey = "ip3"))
   }
 
   fun delete(): String?
@@ -55,5 +52,4 @@ object MyWebServiceCaller :
   {
     return executeResponse(service.status(code))
   }
-
 }

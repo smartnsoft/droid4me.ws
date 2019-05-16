@@ -5,11 +5,15 @@ import com.smartnsoft.droid4me.cache.Values
 import com.smartnsoft.droid4me.log.Logger
 import com.smartnsoft.droid4me.log.LoggerFactory
 import com.smartnsoft.droid4me.ws.WebServiceClient
+import com.smartnsoft.ws.retrofit.RetrofitWebServiceCaller.BuiltInCache
+import com.smartnsoft.ws.retrofit.RetrofitWebServiceCaller.FetchPolicyType.*
 import okhttp3.*
 import retrofit2.Call
 import retrofit2.Converter
 import retrofit2.Retrofit
 import java.io.File
+import java.net.URI
+import java.net.URISyntaxException
 import java.net.UnknownHostException
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -69,9 +73,9 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
 
   companion object
   {
-    private const val CUSTOM_CACHE_URL_PREFIX = "https://customkeycache.smart/"
+    const val ONLY_CACHE_UNSATISFIABLE_ERROR_CODE = 504
 
-    private const val ONLY_CACHE_UNSATISFIABLE_ERROR_CODE = 504
+    const val CUSTOM_CACHE_URL_PREFIX = "https://default.customkeycache.smart/"
 
     const val SMART_ORIGINAL_URL_HEADER = "Smart-Original-URL"
 
@@ -83,7 +87,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
 
     const val CACHE_CONTROL_HEADER = "Cache-Control"
 
-    const val CACHE_PATH = "http-cache"
+    const val CACHE_BASE_PATH = "http-cache/"
 
     const val CONNECT_TIMEOUT = 10 * 1000L                  // 10 seconds
 
@@ -318,6 +322,8 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
 
   private var cacheDir: File? = null
 
+  private var cachePathName: String? = null
+
   private var cacheSize: Long = RetrofitWebServiceCaller.CACHE_SIZE
 
   abstract fun <T> mapResponseToObject(responseBody: String?, clazz: Class<T>): T?
@@ -357,7 +363,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
 
     cacheDir?.also { cacheDirectory ->
       cacheDirectory.setReadable(true)
-      okHttpClientBuilder.cache(Cache(File(cacheDirectory, RetrofitWebServiceCaller.CACHE_PATH), cacheSize))
+      okHttpClientBuilder.cache(Cache(File(cacheDirectory, "${RetrofitWebServiceCaller.CACHE_BASE_PATH}$cachePathName"), cacheSize))
     }
 
     isHttpClientInitialized = true
@@ -403,9 +409,10 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
    * Method to set the [File] and its max size for caching with [httpClient].
    *
    * @param[cacheDir] the [File] to use.
+   * @param[cachePathName] the name for the cache to use in its [File]. Try to use different names for each service to have better behavior and control.
    * @param[cacheSize] the max size for the [Cache] (in [Byte]).
    */
-  fun setupCache(cacheDir: File, cacheSize: Long = RetrofitWebServiceCaller.CACHE_SIZE)
+  fun setupCache(cacheDir: File, cachePathName: String, cacheSize: Long = RetrofitWebServiceCaller.CACHE_SIZE)
   {
     if (isHttpClientInitialized)
     {
@@ -413,6 +420,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
     }
 
     this.cacheDir = cacheDir
+    this.cachePathName = cachePathName
     this.cacheSize = cacheSize
   }
 
@@ -424,30 +432,6 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
   fun getCache(): Cache?
   {
     return httpClient.cache()
-  }
-
-  /**
-   * Method to remove an entry from [Cache].
-   *
-   * @param[urlToRemove] response of the url we want to remove from cache.
-   *
-   * @return true if the entry is removed, false otherwise.
-   */
-  fun removeFromCache(urlToRemove: String): Boolean
-  {
-    val iterator = httpClient.cache()?.urls()
-    while (iterator?.hasNext() == true)
-    {
-      val value = iterator.next()
-      if (value == urlToRemove)
-      {
-        iterator.remove()
-
-        return true
-      }
-    }
-
-    return false
   }
 
   /**
@@ -463,6 +447,78 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
     }
 
     return cacheUrls
+  }
+
+  /**
+   * Method to remove an entry from [Cache].
+   *
+   * @param[urlOfEntry] response of the url we want to remove from cache.
+   * @param[ignoreUrlParameters] ignore url parameters for removing.
+   *
+   * @return the number of entry removed.
+   */
+  @Throws(URISyntaxException::class)
+  fun removeEntryFromCache(urlOfEntry: String, ignoreUrlParameters: Boolean = false): Int
+  {
+    var entryRemoved = 0
+    val urlToRemove = if (ignoreUrlParameters)
+    {
+      val uri = URI(urlOfEntry)
+      URI(uri.scheme, uri.authority, uri.path, null, uri.fragment).toString()
+    }
+    else
+    {
+      urlOfEntry
+    }
+
+    val iterator = httpClient.cache()?.urls()
+    while (iterator?.hasNext() == true)
+    {
+      val value = if (ignoreUrlParameters)
+      {
+        val uri = URI(iterator.next())
+        URI(uri.scheme, uri.authority, uri.path, null, uri.fragment).toString()
+      }
+      else
+      {
+        iterator.next()
+      }
+
+      if (value == urlToRemove)
+      {
+        iterator.remove()
+        entryRemoved++
+      }
+    }
+
+    return entryRemoved
+  }
+
+  // TODO: RemoveEntriesStratingWithFromCache(urlOfEntryStartingWith)
+  // TODO: Dimension for caching ? (DATA, USER..). Maybe in a way like customKey but for all urls / keys.
+
+  /**
+   * Method to remove a custom entry from [Cache].
+   *
+   * @param[customKeyOfEntry] response of the custom key we want to remove from cache.
+   *
+   * @return true if the entry is removed, false otherwise.
+   */
+  fun removeCustomEntryFromCache(customKeyOfEntry: String): Boolean
+  {
+    val iterator = httpClient.cache()?.urls()
+    while (iterator?.hasNext() == true)
+    {
+      val value = iterator.next()
+      if (value == "${RetrofitWebServiceCaller.CUSTOM_CACHE_URL_PREFIX}$customKeyOfEntry")
+      {
+        iterator.remove()
+
+        return true
+      }
+    }
+
+    return false
   }
 
   @WorkerThread
@@ -527,7 +583,6 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
     return newRequest.newBuilder().tag(cachePolicy).build()
   }
 
-
   private fun buildNetworkRequest(request: Request, cachePolicy: CachePolicy? = null, originalRequestUrl: HttpUrl? = null): Request
   {
     val cacheControl = CacheControl.Builder().noCache()
@@ -559,7 +614,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
 
     if (cachePolicy.customKey != null)
     {
-      requestBuilder.url(RetrofitWebServiceCaller.CUSTOM_CACHE_URL_PREFIX + cachePolicy.customKey)
+      requestBuilder.url("${RetrofitWebServiceCaller.CUSTOM_CACHE_URL_PREFIX}${cachePolicy.customKey}")
     }
 
     return requestBuilder.build()
@@ -605,7 +660,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
         {
           responseBuilder.header(RetrofitWebServiceCaller.SMART_ORIGINAL_URL_HEADER, response.request().url().toString())
 
-          val customRequest = response.request().newBuilder().url(RetrofitWebServiceCaller.CUSTOM_CACHE_URL_PREFIX + cachePolicy.customKey).build()
+          val customRequest = response.request().newBuilder().url("${RetrofitWebServiceCaller.CUSTOM_CACHE_URL_PREFIX}${cachePolicy.customKey}").build()
           responseBuilder.request(customRequest)
         }
 
@@ -622,5 +677,4 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
       log.debug(message)
     }
   }
-
 }

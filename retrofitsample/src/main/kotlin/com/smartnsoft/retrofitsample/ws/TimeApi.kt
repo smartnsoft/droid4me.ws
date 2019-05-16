@@ -1,7 +1,8 @@
 package com.smartnsoft.retrofitsample.ws
 
 import retrofit2.Call
-import retrofit2.http.*
+import retrofit2.http.GET
+import retrofit2.http.Query
 
 /**
  * @author Anthony Msihid
@@ -9,14 +10,11 @@ import retrofit2.http.*
  */
 interface TimeApi
 {
-
   companion object Constants
   {
-
     const val url = "https://postman-echo.com/"
   }
 
   @GET("time/now")
   fun getTime(@Query("number") number: Int? = 0): Call<String>
-
 }

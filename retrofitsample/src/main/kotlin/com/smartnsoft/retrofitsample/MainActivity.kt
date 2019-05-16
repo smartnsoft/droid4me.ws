@@ -5,17 +5,15 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import com.smartnsoft.droid4me.app.SmartCommands
-import com.smartnsoft.retrofitsample.ws.MyWebServiceCaller
+import com.smartnsoft.retrofitsample.ws.TimeApi
 import com.smartnsoft.retrofitsample.ws.TimeWebServiceCaller
 import kotlinx.android.synthetic.main.activity_main.*
 
-class MainActivity :
-    AppCompatActivity()
+class MainActivity
+  : AppCompatActivity()
 {
-
   companion object
   {
-
     const val TAG = "WEB SERVICE"
   }
 
@@ -27,7 +25,6 @@ class MainActivity :
 
       SmartCommands.execute(object : SmartCommands.GuardedCommand<Context>(applicationContext)
       {
-
         override fun onThrowable(throwable: Throwable): Throwable?
         {
           Log.w(TAG, "Error", throwable)
@@ -38,8 +35,8 @@ class MainActivity :
         @Throws(Exception::class)
         override fun runGuarded()
         {
-          MyWebServiceCaller.getIp2()?.also {
-            Log.w(TAG, "getIp2: ${it.origin}")
+          TimeWebServiceCaller.getTime()?.also {
+            Log.w(TAG, "getTime: $it")
           }
           /*MyWebServiceCaller.getString()?.also {
             Log.d(TAG, "getString: $it")
@@ -75,7 +72,6 @@ class MainActivity :
 
       SmartCommands.execute(object : SmartCommands.GuardedCommand<Context>(applicationContext)
       {
-
         override fun onThrowable(throwable: Throwable): Throwable?
         {
           Log.w(TAG, "Error", throwable)
@@ -86,16 +82,14 @@ class MainActivity :
         @Throws(Exception::class)
         override fun runGuarded()
         {
-          MyWebServiceCaller.getIp3()?.also {
-            Log.w(TAG, "getIp3: ${it.origin}")
+          TimeWebServiceCaller.getTime3()?.also {
+            Log.w(TAG, "getTime3: ${it}")
           }
         }
-
       })
 
       SmartCommands.execute(object : SmartCommands.GuardedCommand<Context>(applicationContext)
       {
-
         override fun onThrowable(throwable: Throwable): Throwable?
         {
           Log.w(TAG, "Error", throwable)
@@ -106,15 +100,13 @@ class MainActivity :
         @Throws(Exception::class)
         override fun runGuarded()
         {
-          MyWebServiceCaller.getIp()?.also {
-            Log.w(TAG, "getIp: ${it.origin}")
+          TimeWebServiceCaller.getTime2()?.also {
+            Log.w(TAG, "getTime2: ${it}")
+            TimeWebServiceCaller.removeEntryFromCache("${TimeApi.url}time/now")
+            Log.w(TAG, "getTime2: ${it}")
           }
         }
-
       })
     }
   }
-
-
-
 }

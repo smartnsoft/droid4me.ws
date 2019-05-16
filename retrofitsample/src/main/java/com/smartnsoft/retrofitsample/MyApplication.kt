@@ -11,11 +11,10 @@ import com.smartnsoft.retrofitsample.ws.TimeWebServiceCaller
  */
 class MyApplication : Application()
 {
-
   override fun onCreate()
   {
     super.onCreate()
-    MyWebServiceCaller.setupCache(applicationContext.cacheDir)
-    TimeWebServiceCaller.setupCache(applicationContext.cacheDir)
+    MyWebServiceCaller.setupCache(applicationContext.cacheDir, "MyService")
+    TimeWebServiceCaller.setupCache(applicationContext.cacheDir, "TimeService")
   }
 }
