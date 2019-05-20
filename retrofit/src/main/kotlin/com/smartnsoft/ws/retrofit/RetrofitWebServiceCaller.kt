@@ -106,13 +106,15 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
    * @param[defaultFetchPolicyType] enum that define the way all the [Call] are done, see [FetchPolicyType].
    * @param[defaultCacheRetentionTimeInSeconds] default time in seconds all the [Call] will cache the [Response] (= maxAge).
    * @param[defaultAllowedTimeExpiredCacheInSeconds] default time in seconds you allow all the cached [Response] to be valid after their expiration (= maxStale).
-   * @param[useClientDateForCache] if true, override all the date of the [Response] with the client date. Useful if the server time is misconfigured.
+   * @param[defaultUseClientDateForCache] if true, override all the date of the [Response] with the client date. Useful if the server time is misconfigured.
+   * @param[shouldReturnErrorResponse] set to true if you want to get error response instead of an exception.
    *
    */
   class BuiltInCache(val defaultFetchPolicyType: FetchPolicyType = FetchPolicyType.NETWORK_THEN_CACHE,
                      val defaultCacheRetentionTimeInSeconds: Int? = RetrofitWebServiceCaller.DEFAULT_CACHE_TIME_IN_SECONDS,
                      val defaultAllowedTimeExpiredCacheInSeconds: Int? = null,
-                     val useClientDateForCache: Boolean = true)
+                     val defaultUseClientDateForCache: Boolean = true,
+                     val shouldReturnErrorResponse: Boolean = false)
 
   /**
    * Class to configure the behavior of the [Call].
@@ -124,11 +126,10 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
    * @param[customKey] use this if you want to store the [Response] with a custom key in [Cache] (rather than its url, used by default).
    *
    */
-  inner class CachePolicy(val fetchPolicyType: FetchPolicyType = builtInCache?.defaultFetchPolicyType
-      ?: FetchPolicyType.ONLY_NETWORK,
+  inner class CachePolicy(val fetchPolicyType: FetchPolicyType = builtInCache?.defaultFetchPolicyType ?: FetchPolicyType.ONLY_NETWORK,
                           val cacheRetentionPolicyInSeconds: Int? = builtInCache?.defaultCacheRetentionTimeInSeconds,
                           val allowedTimeExpiredCacheInSeconds: Int? = builtInCache?.defaultAllowedTimeExpiredCacheInSeconds,
-                          val useClientDateForCache: Boolean = builtInCache?.useClientDateForCache ?: true,
+                          val useClientDateForCache: Boolean = builtInCache?.defaultUseClientDateForCache ?: true,
                           val customKey: String? = null)
 
   // This class is instantiated only once and does not leak as RetrofitWebServiceCaller is a Singleton.
@@ -358,7 +359,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
     if (builtInCache != null)
     {
       okHttpClientBuilder.addNetworkInterceptor(NetworkCacheInterceptor())
-      okHttpClientBuilder.addInterceptor(AppCacheInterceptor())
+      okHttpClientBuilder.addInterceptor(AppCacheInterceptor(builtInCache.shouldReturnErrorResponse))
     }
 
     cacheDir?.also { cacheDirectory ->
