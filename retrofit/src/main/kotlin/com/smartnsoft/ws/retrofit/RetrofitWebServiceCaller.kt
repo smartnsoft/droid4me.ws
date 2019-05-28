@@ -110,11 +110,13 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
    * @param[shouldReturnErrorResponse] set to true if you want to get error response instead of an exception.
    *
    */
-  class BuiltInCache(val defaultFetchPolicyType: FetchPolicyType = FetchPolicyType.NETWORK_THEN_CACHE,
-                     val defaultCacheRetentionTimeInSeconds: Int? = RetrofitWebServiceCaller.DEFAULT_CACHE_TIME_IN_SECONDS,
-                     val defaultAllowedTimeExpiredCacheInSeconds: Int? = null,
-                     val defaultUseClientDateForCache: Boolean = true,
-                     val shouldReturnErrorResponse: Boolean = false)
+  class BuiltInCache
+  @JvmOverloads
+  constructor(val defaultFetchPolicyType: FetchPolicyType = FetchPolicyType.NETWORK_THEN_CACHE,
+              val defaultCacheRetentionTimeInSeconds: Int? = RetrofitWebServiceCaller.DEFAULT_CACHE_TIME_IN_SECONDS,
+              val defaultAllowedTimeExpiredCacheInSeconds: Int? = null,
+              val defaultUseClientDateForCache: Boolean = true,
+              val shouldReturnErrorResponse: Boolean = false)
 
   /**
    * Class to configure the behavior of the [Call].
@@ -126,15 +128,19 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
    * @param[customKey] use this if you want to store the [Response] with a custom key in [Cache] (rather than its url, used by default).
    *
    */
-  inner class CachePolicy(val fetchPolicyType: FetchPolicyType = builtInCache?.defaultFetchPolicyType ?: FetchPolicyType.ONLY_NETWORK,
-                          val cacheRetentionPolicyInSeconds: Int? = builtInCache?.defaultCacheRetentionTimeInSeconds,
-                          val allowedTimeExpiredCacheInSeconds: Int? = builtInCache?.defaultAllowedTimeExpiredCacheInSeconds,
-                          val useClientDateForCache: Boolean = builtInCache?.defaultUseClientDateForCache ?: true,
-                          val customKey: String? = null)
+  inner class CachePolicy
+  @JvmOverloads
+  constructor(val fetchPolicyType: FetchPolicyType = builtInCache?.defaultFetchPolicyType ?: FetchPolicyType.ONLY_NETWORK,
+              val cacheRetentionPolicyInSeconds: Int? = builtInCache?.defaultCacheRetentionTimeInSeconds,
+              val allowedTimeExpiredCacheInSeconds: Int? = builtInCache?.defaultAllowedTimeExpiredCacheInSeconds,
+              val useClientDateForCache: Boolean = builtInCache?.defaultUseClientDateForCache ?: true,
+              val customKey: String? = null)
 
   // This class is instantiated only once and does not leak as RetrofitWebServiceCaller is a Singleton.
   // So it is OK to declare it `inner`, to pass the `isConnected` boolean.
-  inner class AppCacheInterceptor(private val shouldReturnErrorResponse: Boolean = false)
+  inner class AppCacheInterceptor
+  @JvmOverloads
+  constructor(private val shouldReturnErrorResponse: Boolean = false)
     : Interceptor
   {
     private val log: Logger by lazy {
@@ -413,6 +419,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
    * @param[cachePathName] the name for the cache to use in its [File]. Try to use different names for each service to have better behavior and control.
    * @param[cacheSize] the max size for the [Cache] (in [Byte]).
    */
+  @JvmOverloads
   fun setupCache(cacheDir: File, cachePathName: String, cacheSize: Long = RetrofitWebServiceCaller.CACHE_SIZE)
   {
     if (isHttpClientInitialized)
@@ -459,6 +466,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
    * @return the number of entry removed.
    */
   @Throws(URISyntaxException::class)
+  @JvmOverloads
   fun removeEntryFromCache(urlOfEntry: String, ignoreUrlParameters: Boolean = false): Int
   {
     var entryRemoved = 0
@@ -523,6 +531,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
   }
 
   @WorkerThread
+  @JvmOverloads
   protected fun <T : Any> executeResponse(call: Call<T>?, cachePolicy: CachePolicy = CachePolicy()): Response?
   {
     call?.request()?.let { request ->
@@ -538,6 +547,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
   }
 
   @WorkerThread
+  @JvmOverloads
   protected fun <T : Any> execute(clazz: Class<T>, call: Call<T>?, cachePolicy: CachePolicy = CachePolicy()): T?
   {
     call?.request()?.let { request ->
@@ -552,6 +562,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
   }
 
   @WorkerThread
+  @JvmOverloads
   protected fun <T : Any> execute(call: Call<T>?, cachePolicy: CachePolicy = CachePolicy()): String?
   {
     call?.request()?.let { request ->
