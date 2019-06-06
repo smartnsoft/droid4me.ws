@@ -13,8 +13,8 @@ android
     minSdkVersion 16
     targetSdkVersion 28
 
-    versionCode 5
-    versionName "0.4-003-SNAPSHOT"
+    versionCode 6
+    versionName "1.0.0-RC1"
   }
 
   buildTypes
