@@ -130,7 +130,8 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
    */
   inner class CachePolicy
   @JvmOverloads
-  constructor(val fetchPolicyType: FetchPolicyType = builtInCache?.defaultFetchPolicyType ?: FetchPolicyType.ONLY_NETWORK,
+  constructor(val fetchPolicyType: FetchPolicyType = builtInCache?.defaultFetchPolicyType
+      ?: FetchPolicyType.ONLY_NETWORK,
               val cacheRetentionPolicyInSeconds: Int? = builtInCache?.defaultCacheRetentionTimeInSeconds,
               val allowedTimeExpiredCacheInSeconds: Int? = builtInCache?.defaultAllowedTimeExpiredCacheInSeconds,
               val useClientDateForCache: Boolean = builtInCache?.defaultUseClientDateForCache ?: true,
@@ -165,16 +166,19 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
       {
         val request = buildRequest(chain.request(), cachePolicy)
         var firstTry: Response? = null
+        var firstException: java.lang.Exception? = null
 
-        try
+        val shouldDoSecondCall = try
         {
           firstTry = chain.proceed(request)
+          shouldDoSecondCall(firstTry, null)
         }
         catch (exception: java.lang.Exception)
         {
+          firstException = exception
           val errorMessage = "Call of ${chain.request().method()} to ${chain.request().url()} with cache policy ${fetchPolicyType.name} failed."
-
           debug(errorMessage)
+          shouldDoSecondCall(firstTry, exception)
         }
 
         // Fails fast if the connectivity is known to be lost
@@ -225,7 +229,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
           {
             debug("Call of ${request.method()} to ${request.url()} with cache policy $fetchPolicyType failed to find a response. Failing.")
 
-            return onStatusCodeNotOk(firstTry)
+            return onStatusCodeNotOk(firstTry, firstException)
           }
           else                                                                                                                                                           ->
           {
@@ -235,28 +239,35 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
           }
         }
 
-        chain.proceed(secondRequest).also { secondTry ->
-          return when
-          {
-            fetchPolicyType == FetchPolicyType.NETWORK_THEN_CACHE && secondTry.code() == RetrofitWebServiceCaller.ONLY_CACHE_UNSATISFIABLE_ERROR_CODE ->
+        if (shouldDoSecondCall)
+        {
+          chain.proceed(secondRequest).also { secondTry ->
+            return when
             {
-              debug("Second call of ${request.method()} to ${request.url()} with cache policy ${fetchPolicyType.name} failed to find a cached response. Failing.")
+              fetchPolicyType == FetchPolicyType.NETWORK_THEN_CACHE && secondTry.code() == RetrofitWebServiceCaller.ONLY_CACHE_UNSATISFIABLE_ERROR_CODE ->
+              {
+                debug("Second call of ${request.method()} to ${request.url()} with cache policy ${fetchPolicyType.name} failed to find a cached response. Failing.")
 
-              onStatusCodeNotOk(secondTry)
-            }
-            secondTry.isSuccessful.not()                                                                                                              ->
-            {
-              debug("Second call of ${secondTry.request().method()} to ${secondTry.request().url()} with cache policy ${fetchPolicyType.name} failed to find a network response. Failing.")
+                onStatusCodeNotOk(secondTry)
+              }
+              secondTry.isSuccessful.not()                                                                                                              ->
+              {
+                debug("Second call of ${secondTry.request().method()} to ${secondTry.request().url()} with cache policy ${fetchPolicyType.name} failed to find a network response. Failing.")
 
-              onStatusCodeNotOk(secondTry)
-            }
-            else                                                                                                                                      ->
-            {
-              debug("Second call of ${request.method()} to ${request.url()} with cache policy ${fetchPolicyType.name} was successful.")
+                onStatusCodeNotOk(secondTry)
+              }
+              else                                                                                                                                      ->
+              {
+                debug("Second call of ${request.method()} to ${request.url()} with cache policy ${fetchPolicyType.name} was successful.")
 
-              secondTry
+                secondTry
+              }
             }
           }
+        }
+        else
+        {
+          return onStatusCodeNotOk(firstTry, firstException)
         }
       }
 
@@ -264,11 +275,15 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
     }
 
     @Throws(WebServiceClient.CallException::class)
-    fun onStatusCodeNotOk(response: Response?): Response?
+    fun onStatusCodeNotOk(response: Response?, exception: Exception? = null): Response?
     {
       if (response != null && shouldReturnErrorResponse.not())
       {
         throw WebServiceClient.CallException(response.message(), response.code())
+      }
+      else if (response == null && exception != null)
+      {
+        throw WebServiceClient.CallException(exception.message, exception)
       }
       else
       {
@@ -410,6 +425,11 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
   open fun setupNetworkInterceptors(): List<Interceptor>?
   {
     return null
+  }
+
+  open fun shouldDoSecondCall(response: Response?, exception: Exception?): Boolean
+  {
+    return true
   }
 
   /**
