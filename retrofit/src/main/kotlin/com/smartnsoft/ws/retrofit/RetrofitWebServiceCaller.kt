@@ -166,14 +166,14 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
       {
         val request = buildRequest(chain.request(), cachePolicy)
         var firstTry: Response? = null
-        var firstException: java.lang.Exception? = null
+        var firstException: Exception? = null
 
         val shouldDoSecondCall = try
         {
           firstTry = chain.proceed(request)
           shouldDoSecondCall(firstTry, null)
         }
-        catch (exception: java.lang.Exception)
+        catch (exception: Exception)
         {
           firstException = exception
           val errorMessage = "Call of ${chain.request().method()} to ${chain.request().url()} with cache policy ${fetchPolicyType.name} failed."
@@ -427,6 +427,14 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
     return null
   }
 
+  /**
+   * Override this method if you want to block the second call of policies : [NETWORK_THEN_CACHE] and [CACHE_THEN_NETWORK].
+   *
+   * @param[response] the [Response] of the first call.
+   * @param[exception] the [Exception] of the first call.
+   *
+   * @return false if you want to block the 2nd call. True otherwise.
+   */
   open fun shouldDoSecondCall(response: Response?, exception: Exception?): Boolean
   {
     return true
