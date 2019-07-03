@@ -1,6 +1,8 @@
 package com.smartnsoft.ws.retrofit
 
 import android.support.annotation.WorkerThread
+import com.fasterxml.jackson.core.type.TypeReference
+import com.smartnsoft.droid4me.cache.Values
 import com.smartnsoft.droid4me.log.Logger
 import com.smartnsoft.droid4me.log.LoggerFactory
 import com.smartnsoft.droid4me.ws.WebServiceClient
@@ -353,6 +355,8 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
 
   abstract fun <T> mapResponseToObject(responseBody: String?, clazz: Class<T>): T?
 
+  abstract fun <T> mapResponseToObject(responseBody: String?, typeReference: TypeReference<T>): T?
+
   open fun hasConnectivity(): Boolean =
       isConnected
 
@@ -593,6 +597,21 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
       val responseBody = response?.body()?.string()
 
       return mapResponseToObject(responseBody, clazz)
+    } ?: return null
+  }
+
+  @WorkerThread
+  @JvmOverloads
+  protected fun <T : Any> execute(typeReference: TypeReference<T>, call: Call<T>?, cachePolicy: CachePolicy = CachePolicy()): T?
+  {
+    call?.request()?.let { request ->
+      debug("Starting execution of call ${request.method()} to ${request.url()} with cache policy ${cachePolicy.fetchPolicyType.name}")
+
+      val newRequest = request.newBuilder().tag(if (builtInCache != null) cachePolicy else null).build()
+      val response: Response? = httpClient.newCall(newRequest).execute()
+      val responseBody = response?.body()?.string()
+
+      return mapResponseToObject(responseBody, typeReference)
     } ?: return null
   }
 

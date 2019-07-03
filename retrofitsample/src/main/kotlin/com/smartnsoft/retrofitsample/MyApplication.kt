@@ -4,6 +4,7 @@ import android.app.Application
 
 import com.smartnsoft.retrofitsample.ws.MyWebServiceCaller
 import com.smartnsoft.retrofitsample.ws.TimeWebServiceCaller
+import com.smartnsoft.retrofitsample.ws.UNSAWebServiceCaller
 
 /**
  * @author David Fournier
@@ -16,5 +17,6 @@ class MyApplication : Application()
     super.onCreate()
     MyWebServiceCaller.setupCache(applicationContext.cacheDir, "MyService")
     TimeWebServiceCaller.setupCache(applicationContext.cacheDir, "TimeService")
+    UNSAWebServiceCaller.setupCache(applicationContext.cacheDir, "Unsa")
   }
 }
