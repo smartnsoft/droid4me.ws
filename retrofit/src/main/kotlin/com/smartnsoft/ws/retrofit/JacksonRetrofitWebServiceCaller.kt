@@ -2,6 +2,7 @@ package com.smartnsoft.ws.retrofit
 
 import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.smartnsoft.droid4me.ext.json.jackson.JacksonExceptions
 import com.smartnsoft.ws.retrofit.RetrofitWebServiceCaller.BuiltInCache
 import okhttp3.Response
@@ -32,6 +33,7 @@ constructor(api: Class<API>, baseUrl: String, connectTimeout: Long = CONNECT_TIM
   : RetrofitWebServiceCaller<API>(api, baseUrl, connectTimeout, readTimeout, writeTimeout, withBuiltInCache, arrayOf(JacksonConverterFactory.create(), ScalarsConverterFactory.create()))
 {
   private val mapper = ObjectMapper()
+      .registerModule(KotlinModule())
 
   override fun <T> mapResponseToObject(responseBody: String?, clazz: Class<T>): T?
   {

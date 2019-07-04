@@ -1,7 +1,6 @@
 package com.smartnsoft.ws.retrofit
 
 import android.support.annotation.WorkerThread
-import com.smartnsoft.droid4me.cache.Values
 import com.smartnsoft.droid4me.log.Logger
 import com.smartnsoft.droid4me.log.LoggerFactory
 import com.smartnsoft.droid4me.ws.WebServiceClient
@@ -64,6 +63,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
    */
   enum class FetchPolicyType
   {
+
     ONLY_NETWORK,
     ONLY_CACHE,
     NETWORK_THEN_CACHE,
@@ -73,6 +73,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
 
   companion object
   {
+
     const val ONLY_CACHE_UNSATISFIABLE_ERROR_CODE = 504
 
     const val CUSTOM_CACHE_URL_PREFIX = "https://default.customkeycache.smart/"
@@ -144,6 +145,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
   constructor(private val shouldReturnErrorResponse: Boolean = false)
     : Interceptor
   {
+
     private val log: Logger by lazy {
       LoggerFactory.getInstance(AppCacheInterceptor::class.java)
     }
@@ -223,7 +225,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
           {
             debug("Call of ${request.method()} to ${request.url()} with cache policy ${fetchPolicyType.name} failed to find a cached response. Failing.")
 
-            throw Values.CacheException(firstTry?.message(), Exception())
+            throw CacheException("Call of ${request.method()} to ${request.url()} with cache policy ${fetchPolicyType.name} failed to find a cached response. Failing.")
           }
           (firstTry == null || firstTry.isSuccessful.not())                                                                                                              ->
           {
@@ -303,6 +305,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
 
   inner class NetworkCacheInterceptor : Interceptor
   {
+
     override fun intercept(chain: Interceptor.Chain): Response?
     {
       val cachePolicy = chain.request().tag() as? RetrofitWebServiceCaller<API>.CachePolicy
@@ -450,6 +453,10 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
   @JvmOverloads
   fun setupCache(cacheDir: File, cachePathName: String, cacheSize: Long = RetrofitWebServiceCaller.CACHE_SIZE)
   {
+    if (builtInCache == null)
+    {
+      throw IllegalStateException("You must not setup your cache file as the builtInCache is set to null!")
+    }
     if (isHttpClientInitialized)
     {
       throw IllegalStateException("You must setup your cache file before performing any call!")
