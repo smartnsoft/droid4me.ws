@@ -1,19 +1,17 @@
 package test
 
-import com.smartnsoft.retrofitsample.ws.AuthAPI
+import com.smartnsoft.retrofitsample.ws.InfoAPI
 import com.smartnsoft.ws.retrofit.AccessToken
 import com.smartnsoft.ws.retrofit.JacksonRetrofitWebServiceCaller
-import com.smartnsoft.ws.retrofit.TokenAuthenticatorWebServiceCaller
-import com.smartnsoft.ws.retrofit.TokenProvider
+import com.smartnsoft.ws.retrofit.AuthProvider
 import okhttp3.*
-import okhttp3.Authenticator
-import okhttp3.internal.http2.Header
 import okhttp3.mockwebserver.Dispatcher
 import org.junit.Test
 import java.io.File
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.RecordedRequest
 import okhttp3.mockwebserver.MockWebServer
+import org.json.JSONObject
 import org.junit.BeforeClass
 
 
@@ -29,7 +27,7 @@ class Authenticator
   companion object
   {
 
-    class SimpleWebServiceCaller(builtInCache: BuiltInCache? = BuiltInCache(), baseUrl: String, val tokenProvider: TokenProvider) : JacksonRetrofitWebServiceCaller<AuthAPI>(api = AuthAPI::class.java, baseUrl = baseUrl, withBuiltInCache = builtInCache)
+    class SimpleWebServiceCaller(builtInCache: BuiltInCache? = BuiltInCache(shouldReturnErrorResponse = true), baseUrl: String, val authProvider: AuthProvider?) : JacksonRetrofitWebServiceCaller<InfoAPI>(api = InfoAPI::class.java, baseUrl = baseUrl, withBuiltInCache = builtInCache, withAuthProvider = authProvider)
     {
 
       init
@@ -37,19 +35,14 @@ class Authenticator
         setupCache(File("./"), "auth")
       }
 
-      override fun setupAuthenticator(): Authenticator?
-      {
-        return TokenAuthenticatorWebServiceCaller.TokenAuthenticator()
-      }
-
       fun info(): Response?
       {
         return executeResponse(service.getInfo())
       }
 
-      fun auth(username: String, password: String): AccessToken?
+      fun login(username: String, password: String): Boolean
       {
-        return execute(AccessToken::class.java, service.login(username, password))
+        return loginUser(username, password)
       }
 
       override fun shouldDoSecondCall(response: Response?, exception: Exception?): Boolean
@@ -62,29 +55,6 @@ class Authenticator
         {
           super.shouldDoSecondCall(response, exception)
         }
-      }
-
-      override fun setupNetworkInterceptors(): List<Interceptor>?
-      {
-        return (super.setupNetworkInterceptors() ?: emptyList()) + (object : Interceptor
-        {
-          override fun intercept(chain: Interceptor.Chain): Response
-          {
-            val original = chain.request()
-
-            val headers = mutableListOf(Header("XApiKey", AuthAPI.apiToken))
-            tokenProvider.getAccessToken()?.accessToken?.also { accessToken ->
-              headers.add(Header("Authorization", accessToken))
-            }
-
-            val request = original.newBuilder()
-                .headers(headers)
-                .method(original.method, original.body)
-                .build()
-
-            return chain.proceed(request)
-          }
-        })
       }
     }
 
@@ -115,15 +85,20 @@ class Authenticator
         @Throws(InterruptedException::class)
         override fun dispatch(request: RecordedRequest): MockResponse
         {
-          if (request.headers["XApiKey"] == null || request.headers["XApiKey"]!! != AuthAPI.apiToken)
+          val xApiKey = request.headers["XApiKey"]
+          if (xApiKey == null || xApiKey != InfoAPI.apiToken)
           {
             return MockResponse().setResponseCode(403)
           }
 
-          val segments = (request.requestUrl as HttpUrl).encodedPathSegments
-          if (segments.size == 3 && segments[0] == "auth")
+          if (request.path == "/auth")
           {
-            return if (segments[1] == "user" && segments[2] == "pwd")
+            val params = request.body.toString().removePrefix("[text=").removeSuffix("]").split("&").map {
+              val keyValue = it.split("=")
+              keyValue[0] to keyValue[1]
+            }.toMap()
+
+            return if (params["username"] == "user" && params["password"] == "pwd" && params["grant_type"] == "password")
             {
               MockResponse().setResponseCode(200)
                   .setBody("{\n" +
@@ -139,49 +114,61 @@ class Authenticator
             }
           }
 
-          if (request.path == "/info")
+          if (request.path == "/info" && request.getHeader("Authorization") == "Bearer abcccccc")
+            return MockResponse().setResponseCode(200).setBody("{\\\"info\\\":{\\\"name\":\"Lucas Albuquerque\",\"age\":\"21\",\"gender\":\"male\"}}")
+          else if (request.path == "/info" && request.getHeader("Authorization") != "Bearer abcccccc")
+            return MockResponse().setResponseCode(403)
 
-            when (request.path)
-            {
-              "/v1/login/auth/"   -> return MockResponse().setResponseCode(200)
-              "v1/check/version/" -> return MockResponse().setResponseCode(200).setBody("version=9")
-              "/v1/profile/info"  -> return MockResponse().setResponseCode(200).setBody("{\\\"info\\\":{\\\"name\":\"Lucas Albuquerque\",\"age\":\"21\",\"gender\":\"male\"}}")
-            }
           return MockResponse().setResponseCode(404)
         }
       }
       server.dispatcher = dispatcher
 
-      val tokenProvider = object : TokenProvider
+      val tokenProvider = object : AuthProvider
       {
+        override fun getAuthRoute(): String
+        {
+          return mockServerBaseUrl + "auth"
+        }
 
-        var _accessToken = AccessToken()
+        override fun getXApiKey(): String
+        {
+          return InfoAPI.apiToken
+        }
 
-        override fun getAccessToken(): AccessToken
+        var _accessToken: AccessToken? = null
+
+        override fun getAccessToken(): AccessToken?
         {
           return _accessToken
         }
 
-        override fun setAccessToken(accessToken: AccessToken)
+        override fun setAccessToken(accessToken: AccessToken?)
         {
           accessToken.apply {
             _accessToken = accessToken
           }
         }
-
-        override fun deleteAccessToken()
-        {
-        }
       }
 
-      serviceCaller = SimpleWebServiceCaller(baseUrl = mockServerBaseUrl, tokenProvider = tokenProvider)
+      serviceCaller = SimpleWebServiceCaller(baseUrl = mockServerBaseUrl, authProvider = tokenProvider)
     }
   }
 
   @Test
-  fun crash()
+  fun ok()
   {
-    val auth = serviceCaller.auth("user", "pwd")
-    serviceCaller.info()
+    serviceCaller.authProvider?.setAccessToken(null)
+    serviceCaller.login("user", "pwd").also {
+      assert(serviceCaller.info()?.code == 200)
+    }
+  }
+
+  @Test
+  fun ko()
+  {
+    serviceCaller.authProvider?.setAccessToken(null)
+    serviceCaller.login("usr", "pwd")
+    assert(serviceCaller.info()?.code == 403)
   }
 }

@@ -15,8 +15,8 @@ import java.io.Serializable
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class AccessToken
 (
-    @JsonProperty("access_token") var accessToken : String = "",
-    @JsonProperty("refresh_token") var refreshToken: String = "",
-    @JsonProperty("token_type") var tokenType: String = "",
-    @JsonProperty("expires_in") var expiresIn: Long = 0L // In seconds
+    @JsonProperty("access_token") var accessToken : String,
+    @JsonProperty("refresh_token") var refreshToken: String,
+    @JsonProperty("token_type") var tokenType: String,
+    @JsonProperty("expires_in") var expiresIn: Long
 ) : Serializable

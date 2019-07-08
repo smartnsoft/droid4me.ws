@@ -8,15 +8,17 @@ import android.support.annotation.WorkerThread
  * @author David Fournier
  * @since 2019.06.21
  */
-interface TokenProvider
+interface AuthProvider
 {
+  @WorkerThread
+  fun getAuthRoute(): String
+
+  @WorkerThread
+  fun getXApiKey(): String
 
   @WorkerThread
   fun getAccessToken(): AccessToken?
 
   @WorkerThread
-  fun setAccessToken(accessToken: AccessToken)
-
-  @WorkerThread
-  fun deleteAccessToken()
+  fun setAccessToken(accessToken: AccessToken?)
 }

@@ -1,0 +1,10 @@
+http://localhost:65528/info
+GET
+0
+HTTP/1.1 200 OK
+5
+Content-Length: 67
+Cache-Control: max-age=3600000
+Date: Mon Jul 08 19:26:38 CEST 2019
+OkHttp-Sent-Millis: 1562606798672
+OkHttp-Received-Millis: 1562606798673
