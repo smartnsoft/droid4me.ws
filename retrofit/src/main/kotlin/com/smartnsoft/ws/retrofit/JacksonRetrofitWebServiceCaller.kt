@@ -28,10 +28,10 @@ import retrofit2.converter.scalars.ScalarsConverterFactory
  * @param[withBuiltInCache] class to configure the cache and its default values. You must [setupCache]. If set to null, the built in cache is disabled and you don't need to [setupCache]. See [BuiltInCache].
  *
  */
-abstract class JacksonRetrofitWebServiceCaller<API>
+abstract class JacksonRetrofitWebServiceCaller<out API>
 @JvmOverloads
-constructor(api: Class<API>, baseUrl: String, connectTimeout: Long = CONNECT_TIMEOUT, readTimeout: Long = READ_TIMEOUT, writeTimeout: Long = WRITE_TIMEOUT, withBuiltInCache: BuiltInCache? = BuiltInCache(), withAuthProvider: AuthProvider? = null)
-  : RetrofitWebServiceCaller<API>(api, baseUrl, connectTimeout, readTimeout, writeTimeout, withBuiltInCache, withAuthProvider, arrayOf(JacksonConverterFactory.create(), ScalarsConverterFactory.create()))
+constructor(api: Class<API>, baseUrl: String, connectTimeout: Long = CONNECT_TIMEOUT, readTimeout: Long = READ_TIMEOUT, writeTimeout: Long = WRITE_TIMEOUT, withBuiltInCache: BuiltInCache? = BuiltInCache())
+  : RetrofitWebServiceCaller<API>(api, baseUrl, connectTimeout, readTimeout, writeTimeout, withBuiltInCache, arrayOf(JacksonConverterFactory.create(), ScalarsConverterFactory.create()))
 {
   private val mapper = ObjectMapper()
       .registerModule(KotlinModule())

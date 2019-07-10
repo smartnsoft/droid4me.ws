@@ -2,7 +2,7 @@ package test
 
 import com.smartnsoft.retrofitsample.ws.InfoAPI
 import com.smartnsoft.ws.retrofit.AccessToken
-import com.smartnsoft.ws.retrofit.JacksonRetrofitWebServiceCaller
+import com.smartnsoft.ws.retrofit.AuthJacksonRetrofitWebServiceCaller
 import com.smartnsoft.ws.retrofit.AuthProvider
 import okhttp3.*
 import okhttp3.mockwebserver.Dispatcher
@@ -11,7 +11,6 @@ import java.io.File
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.RecordedRequest
 import okhttp3.mockwebserver.MockWebServer
-import org.json.JSONObject
 import org.junit.BeforeClass
 
 
@@ -27,7 +26,7 @@ class Authenticator
   companion object
   {
 
-    class SimpleWebServiceCaller(builtInCache: BuiltInCache? = BuiltInCache(shouldReturnErrorResponse = true), baseUrl: String, val authProvider: AuthProvider?) : JacksonRetrofitWebServiceCaller<InfoAPI>(api = InfoAPI::class.java, baseUrl = baseUrl, withBuiltInCache = builtInCache, withAuthProvider = authProvider)
+    private class AuthSimpleWebServiceCaller(val authProvider: AuthProvider, builtInCache: BuiltInCache? = BuiltInCache(shouldReturnErrorResponse = true), baseUrl: String) : AuthJacksonRetrofitWebServiceCaller<InfoAPI>(api = InfoAPI::class.java, baseUrl = baseUrl, builtInCache = builtInCache, authProvider = authProvider)
     {
 
       init
@@ -59,7 +58,7 @@ class Authenticator
     }
 
     var mockServerBaseUrl: String = ""
-    lateinit var serviceCaller: SimpleWebServiceCaller
+    private lateinit var serviceCaller: AuthSimpleWebServiceCaller
 
     @BeforeClass
     @JvmStatic
@@ -108,14 +107,26 @@ class Authenticator
                       "  \"token_type\":\"Bearer\"\n" +
                       "}")
             }
+            else if (params["refresh_token"] == "12345abc" && params["grant_type"] == "refresh_token")
+            {
+              MockResponse().setResponseCode(200)
+                  .setBody("{\n" +
+                      "  \"access_token\":\"abccccccd\",\n" +
+                      "  \"refresh_token\":\"12345abc\",\n" +
+                      "  \"expires_in\":3000,\n" +
+                      "  \"token_type\":\"Bearer\"\n" +
+                      "}")
+            }
             else
             {
               MockResponse().setResponseCode(403)
             }
           }
 
-          if (request.path == "/info" && request.getHeader("Authorization") == "Bearer abcccccc")
+          if (request.path == "/info" && request.getHeader("Authorization") == "Bearer abccccccd")
             return MockResponse().setResponseCode(200).setBody("{\\\"info\\\":{\\\"name\":\"Lucas Albuquerque\",\"age\":\"21\",\"gender\":\"male\"}}")
+          else if (request.path == "/info" && request.getHeader("Authorization") == "Bearer abcccccc")
+            return MockResponse().setResponseCode(401)
           else if (request.path == "/info" && request.getHeader("Authorization") != "Bearer abcccccc")
             return MockResponse().setResponseCode(403)
 
@@ -151,14 +162,14 @@ class Authenticator
         }
       }
 
-      serviceCaller = SimpleWebServiceCaller(baseUrl = mockServerBaseUrl, authProvider = tokenProvider)
+      serviceCaller = AuthSimpleWebServiceCaller(baseUrl = mockServerBaseUrl, authProvider = tokenProvider)
     }
   }
 
   @Test
   fun ok()
   {
-    serviceCaller.authProvider?.setAccessToken(null)
+    serviceCaller.authProvider.setAccessToken(null)
     serviceCaller.login("user", "pwd").also {
       assert(serviceCaller.info()?.code == 200)
     }
@@ -167,7 +178,7 @@ class Authenticator
   @Test
   fun ko()
   {
-    serviceCaller.authProvider?.setAccessToken(null)
+    serviceCaller.authProvider.setAccessToken(null)
     serviceCaller.login("usr", "pwd")
     assert(serviceCaller.info()?.code == 403)
   }
