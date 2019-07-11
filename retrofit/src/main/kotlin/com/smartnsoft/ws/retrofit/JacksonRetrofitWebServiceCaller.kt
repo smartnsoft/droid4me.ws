@@ -30,7 +30,12 @@ import retrofit2.converter.scalars.ScalarsConverterFactory
  */
 abstract class JacksonRetrofitWebServiceCaller<out API>
 @JvmOverloads
-constructor(api: Class<API>, baseUrl: String, connectTimeout: Long = CONNECT_TIMEOUT, readTimeout: Long = READ_TIMEOUT, writeTimeout: Long = WRITE_TIMEOUT, withBuiltInCache: BuiltInCache? = BuiltInCache())
+constructor(api: Class<API>,
+            baseUrl: String,
+            connectTimeout: Long = CONNECT_TIMEOUT,
+            readTimeout: Long = READ_TIMEOUT,
+            writeTimeout: Long = WRITE_TIMEOUT,
+            withBuiltInCache: BuiltInCache? = BuiltInCache())
   : RetrofitWebServiceCaller<API>(api, baseUrl, connectTimeout, readTimeout, writeTimeout, withBuiltInCache, arrayOf(JacksonConverterFactory.create(), ScalarsConverterFactory.create()))
 {
   private val mapper = ObjectMapper()

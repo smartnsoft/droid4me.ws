@@ -26,6 +26,14 @@ class Authenticator
   companion object
   {
 
+    enum class ServerBehavior
+    {
+      NORMAL,
+      TOKEN_ERROR,
+      TOKEN_AND_REFRESH_ERROR,
+      WRONG_XAPIKEY
+    }
+
     private class AuthSimpleWebServiceCaller(val authProvider: AuthProvider, builtInCache: BuiltInCache? = BuiltInCache(shouldReturnErrorResponse = true), baseUrl: String) : AuthJacksonRetrofitWebServiceCaller<InfoAPI>(api = InfoAPI::class.java, baseUrl = baseUrl, builtInCache = builtInCache, authProvider = authProvider)
     {
 
@@ -44,48 +52,28 @@ class Authenticator
         return loginUser(username, password)
       }
 
-      override fun shouldDoSecondCall(response: Response?, exception: Exception?): Boolean
-      {
-        return if (response?.code == 401 || response?.code == 403)
-        {
-          false
-        }
-        else
-        {
-          super.shouldDoSecondCall(response, exception)
-        }
-      }
+
     }
 
     var mockServerBaseUrl: String = ""
     private lateinit var serviceCaller: AuthSimpleWebServiceCaller
 
-    @BeforeClass
     @JvmStatic
-    fun initializeServer()
+    fun initializeServer(behavior: ServerBehavior)
     {
       val server = MockWebServer()
-
-      //      // Schedule some responses.
-      //      server.enqueue(MockResponse().setBody("hello, world!"))
-      //      server.enqueue(MockResponse().setBody("sup, bra?"))
-      //      server.enqueue(MockResponse().setBody("yo dog"))
-
-      // Start the server.
       server.start()
-
-      // Ask the server for its URL. You'll need this to make HTTP requests.
       mockServerBaseUrl = server.url("/").toString()
-
 
       val dispatcher = object : Dispatcher()
       {
-
         @Throws(InterruptedException::class)
         override fun dispatch(request: RecordedRequest): MockResponse
         {
           val xApiKey = request.headers["XApiKey"]
-          if (xApiKey == null || xApiKey != InfoAPI.apiToken)
+          val xApiKeyServer = if (behavior == Companion.ServerBehavior.WRONG_XAPIKEY) "yosoleil" else InfoAPI.apiToken
+
+          if (xApiKey == null || xApiKey != xApiKeyServer)
           {
             return MockResponse().setResponseCode(403)
           }
@@ -101,18 +89,28 @@ class Authenticator
             {
               MockResponse().setResponseCode(200)
                   .setBody("{\n" +
-                      "  \"access_token\":\"abcccccc\",\n" +
-                      "  \"refresh_token\":\"12345abc\",\n" +
+                      "  \"access_token\":\"abc\",\n" +
+                      "  \"refresh_token\":\"123\",\n" +
                       "  \"expires_in\":3000,\n" +
                       "  \"token_type\":\"Bearer\"\n" +
                       "}")
             }
-            else if (params["refresh_token"] == "12345abc" && params["grant_type"] == "refresh_token")
+            else if (params["refresh_token"] == "123" && params["grant_type"] == "refresh_token")
             {
               MockResponse().setResponseCode(200)
                   .setBody("{\n" +
-                      "  \"access_token\":\"abccccccd\",\n" +
-                      "  \"refresh_token\":\"12345abc\",\n" +
+                      "  \"access_token\":\"def\",\n" +
+                      "  \"refresh_token\":\"456\",\n" +
+                      "  \"expires_in\":3000,\n" +
+                      "  \"token_type\":\"Bearer\"\n" +
+                      "}")
+            }
+            else if (params["refresh_token"] == "456" && params["grant_type"] == "refresh_token")
+            {
+              MockResponse().setResponseCode(200)
+                  .setBody("{\n" +
+                      "  \"access_token\":\"ghi\",\n" +
+                      "  \"refresh_token\":\"789\",\n" +
                       "  \"expires_in\":3000,\n" +
                       "  \"token_type\":\"Bearer\"\n" +
                       "}")
@@ -123,12 +121,43 @@ class Authenticator
             }
           }
 
-          if (request.path == "/info" && request.getHeader("Authorization") == "Bearer abccccccd")
-            return MockResponse().setResponseCode(200).setBody("{\\\"info\\\":{\\\"name\":\"Lucas Albuquerque\",\"age\":\"21\",\"gender\":\"male\"}}")
-          else if (request.path == "/info" && request.getHeader("Authorization") == "Bearer abcccccc")
-            return MockResponse().setResponseCode(401)
-          else if (request.path == "/info" && request.getHeader("Authorization") != "Bearer abcccccc")
-            return MockResponse().setResponseCode(403)
+          if (request.path == "/info" )
+          {
+            if (request.getHeader("Authorization")?.isNotBlank() == true)
+            {
+              when (behavior)
+              {
+                Companion.ServerBehavior.NORMAL                  ->
+                {
+                  if (request.getHeader("Authorization") == "Bearer abc")
+                    return MockResponse().setResponseCode(200).setBody("{\\\"info\\\":{\\\"name\":\"Lucas Albuquerque\",\"age\":\"21\",\"gender\":\"male\"}}")
+                  else
+                    return MockResponse().setResponseCode(401)
+                }
+                Companion.ServerBehavior.TOKEN_ERROR             ->
+                {
+                  if (request.getHeader("Authorization") == "Bearer def")
+                    return MockResponse().setResponseCode(200).setBody("{\\\"info\\\":{\\\"name\":\"Lucas Albuquerque\",\"age\":\"21\",\"gender\":\"male\"}}")
+                  else
+                    return MockResponse().setResponseCode(401)
+                }
+                Companion.ServerBehavior.TOKEN_AND_REFRESH_ERROR ->
+                {
+                  if (request.getHeader("Authorization") == "Bearer ghi")
+                    return MockResponse().setResponseCode(200).setBody("{\\\"info\\\":{\\\"name\":\"Lucas Albuquerque\",\"age\":\"21\",\"gender\":\"male\"}}")
+                  else
+                    return MockResponse().setResponseCode(401)
+                }
+                Companion.ServerBehavior.WRONG_XAPIKEY           ->
+                {
+                }
+              }
+            }
+            else
+            {
+              return MockResponse().setResponseCode(403)
+            }
+          }
 
           return MockResponse().setResponseCode(404)
         }
@@ -167,8 +196,10 @@ class Authenticator
   }
 
   @Test
-  fun ok()
+  fun refreshTokenOK()
   {
+    initializeServer(Companion.ServerBehavior.TOKEN_ERROR)
+
     serviceCaller.authProvider.setAccessToken(null)
     serviceCaller.login("user", "pwd").also {
       assert(serviceCaller.info()?.code == 200)
@@ -176,10 +207,34 @@ class Authenticator
   }
 
   @Test
-  fun ko()
+  fun loginKO()
   {
+    initializeServer(Companion.ServerBehavior.NORMAL)
+
     serviceCaller.authProvider.setAccessToken(null)
     serviceCaller.login("usr", "pwd")
     assert(serviceCaller.info()?.code == 403)
+  }
+
+  @Test
+  fun tokenAndRefreshKO()
+  {
+    initializeServer(Companion.ServerBehavior.TOKEN_AND_REFRESH_ERROR)
+
+    serviceCaller.authProvider.setAccessToken(null)
+    serviceCaller.login("user", "pwd").also {
+      assert(serviceCaller.info()?.code == 401)
+    }
+  }
+
+  @Test
+  fun loginAndInfoOK()
+  {
+    initializeServer(Companion.ServerBehavior.NORMAL)
+
+    serviceCaller.authProvider.setAccessToken(null)
+    serviceCaller.login("user", "pwd").also {
+      assert(serviceCaller.info()?.code == 200)
+    }
   }
 }

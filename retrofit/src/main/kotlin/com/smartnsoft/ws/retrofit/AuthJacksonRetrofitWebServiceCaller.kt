@@ -20,14 +20,9 @@ constructor(private val authProvider: AuthProvider,
             readTimeout: Long = READ_TIMEOUT,
             writeTimeout: Long = WRITE_TIMEOUT,
             builtInCache: BuiltInCache? = BuiltInCache())
-  : JacksonRetrofitWebServiceCaller<API>(api,
-    baseUrl,
-    connectTimeout,
-    readTimeout,
-    writeTimeout,
-    builtInCache)
+  : JacksonRetrofitWebServiceCaller<API>(api, baseUrl, connectTimeout, readTimeout, writeTimeout, builtInCache)
 {
-  inner class TokenAuthenticatorInterceptor : Authenticator, Interceptor
+  private inner class TokenAuthenticatorInterceptor : Authenticator, Interceptor
   {
     override fun authenticate(route: Route?, response: Response): Request?
     {
@@ -43,9 +38,9 @@ constructor(private val authProvider: AuthProvider,
           val newAccessToken = executeAuth(authService?.refreshToken(getAuthRoute(), accessToken.refreshToken))
           authProvider.setAccessToken(newAccessToken)
 
-          authProvider.getAccessToken()?.apply {
+          authProvider.getAccessToken()?.also { accessToken ->
             return response.request().newBuilder()
-                .header("Authorization", "${this.tokenType} ${this.accessToken}")
+                .header("Authorization", "${accessToken.tokenType} ${accessToken.accessToken}")
                 .build()
           }
         }
@@ -59,21 +54,18 @@ constructor(private val authProvider: AuthProvider,
       val newRequest = chain.request().newBuilder()
 
       authProvider.apply {
-        newRequest.header("XApiKey", getXApiKey())
+        getXApiKey().takeIf { XApiKey -> XApiKey.isNotBlank() }?.apply {
+          newRequest.header("XApiKey", this)
+        }
 
-        if (chain.request().url() != HttpUrl.parse(getAuthRoute()))
-        {
-          getAccessToken()?.also { accessToken ->
-            newRequest.header("Authorization", "${accessToken.tokenType} ${accessToken.accessToken}")
-          }
+        getAccessToken()?.takeIf { accessToken -> accessToken.tokenType.isNotBlank() && accessToken.accessToken.isNotBlank() }?.apply {
+          newRequest.header("Authorization", "$tokenType $accessToken")
         }
       }
 
       return chain.proceed(newRequest.build())
     }
   }
-
-  private var isHttpAuthClientInitialized = false
 
   private val httpAuthClient: OkHttpClient by lazy {
     computeHttpAuthClient()
@@ -103,20 +95,6 @@ constructor(private val authProvider: AuthProvider,
     }
   }
 
-  private fun computeHttpAuthClient(): OkHttpClient
-  {
-    val okHttpAuthClientBuilder = OkHttpClient.Builder()
-        .connectTimeout(connectTimeout, TimeUnit.MILLISECONDS)
-        .readTimeout(readTimeout, TimeUnit.MILLISECONDS)
-        .writeTimeout(writeTimeout, TimeUnit.MILLISECONDS)
-
-    okHttpAuthClientBuilder.addNetworkInterceptor(TokenAuthenticatorInterceptor())
-
-    isHttpAuthClientInitialized = true
-
-    return okHttpAuthClientBuilder.build()
-  }
-
   @WorkerThread
   protected fun loginUser(username: String, password: String): Boolean
   {
@@ -134,6 +112,28 @@ constructor(private val authProvider: AuthProvider,
     return newAccessToken != null
   }
 
+  final override fun setupAuthenticator(): Authenticator?
+  {
+    return TokenAuthenticatorInterceptor()
+  }
+
+  final override fun setupFirstAppInterceptors(): List<Interceptor>?
+  {
+    return listOf(TokenAuthenticatorInterceptor())
+  }
+
+  final override fun shouldDoSecondCall(response: Response?, exception: Exception?): Boolean
+  {
+    return if (response?.code() == 401 || response?.code() == 403)
+    {
+      false
+    }
+    else
+    {
+      super.shouldDoSecondCall(response, exception)
+    }
+  }
+
   @WorkerThread
   private fun executeAuth(call: Call<AccessToken>?): AccessToken?
   {
@@ -146,5 +146,17 @@ constructor(private val authProvider: AuthProvider,
 
       return mapResponseToObject(responseBody, AccessToken::class.java)
     } ?: return null
+  }
+
+  private fun computeHttpAuthClient(): OkHttpClient
+  {
+    val okHttpAuthClientBuilder = OkHttpClient.Builder()
+        .connectTimeout(connectTimeout, TimeUnit.MILLISECONDS)
+        .readTimeout(readTimeout, TimeUnit.MILLISECONDS)
+        .writeTimeout(writeTimeout, TimeUnit.MILLISECONDS)
+
+    okHttpAuthClientBuilder.addNetworkInterceptor(TokenAuthenticatorInterceptor())
+
+    return okHttpAuthClientBuilder.build()
   }
 }

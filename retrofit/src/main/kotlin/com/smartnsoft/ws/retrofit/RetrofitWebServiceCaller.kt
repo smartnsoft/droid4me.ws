@@ -39,12 +39,12 @@ import kotlin.collections.ArrayList
  */
 @Suppress("UNCHECKED_CAST")
 abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
-                                             baseUrl: String,
-                                             protected val connectTimeout: Long = CONNECT_TIMEOUT,
-                                             protected val readTimeout: Long = READ_TIMEOUT,
-                                             protected val writeTimeout: Long = WRITE_TIMEOUT,
-                                             protected val builtInCache: BuiltInCache? = BuiltInCache(),
-                                             protected val converterFactories: Array<Converter.Factory> = emptyArray())
+                                                 baseUrl: String,
+                                                 protected val connectTimeout: Long = CONNECT_TIMEOUT,
+                                                 protected val readTimeout: Long = READ_TIMEOUT,
+                                                 protected val writeTimeout: Long = WRITE_TIMEOUT,
+                                                 protected val builtInCache: BuiltInCache? = BuiltInCache(),
+                                                 protected val converterFactories: Array<Converter.Factory> = emptyArray())
 {
 
   /**
@@ -141,7 +141,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
 
   // This class is instantiated only once and does not leak as RetrofitWebServiceCaller is a Singleton.
   // So it is OK to declare it `inner`, to pass the `isConnected` boolean.
-  inner class AppCacheInterceptor
+  private inner class AppCacheInterceptor
   @JvmOverloads
   constructor(private val shouldReturnErrorResponse: Boolean = false)
     : Interceptor
@@ -304,7 +304,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
 
   }
 
-  inner class NetworkCacheInterceptor : Interceptor
+  private inner class NetworkCacheInterceptor : Interceptor
   {
 
     override fun intercept(chain: Interceptor.Chain): Response?
@@ -380,24 +380,24 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
         .readTimeout(readTimeout, TimeUnit.MILLISECONDS)
         .writeTimeout(writeTimeout, TimeUnit.MILLISECONDS)
 
-    if (this is AuthJacksonRetrofitWebServiceCaller)
-    {
-      okHttpClientBuilder.authenticator(this.TokenAuthenticatorInterceptor())
-      okHttpClientBuilder.addInterceptor(this.TokenAuthenticatorInterceptor())
-    }
-    else
-    {
-      setupAuthenticator()?.also { authenticator ->
-        okHttpClientBuilder.authenticator(authenticator)
-      }
+    setupAuthenticator()?.also { authenticator ->
+      okHttpClientBuilder.authenticator(authenticator)
     }
 
-    setupNetworkInterceptors()?.forEach { interceptor ->
-      okHttpClientBuilder.addNetworkInterceptor(interceptor)
+    setupFirstAppInterceptors()?.forEach { interceptor ->
+      okHttpClientBuilder.addInterceptor(interceptor)
     }
 
     setupAppInterceptors()?.forEach { interceptor ->
       okHttpClientBuilder.addInterceptor(interceptor)
+    }
+
+    setupFirstNetworkInterceptors()?.forEach { interceptor ->
+      okHttpClientBuilder.addNetworkInterceptor(interceptor)
+    }
+
+    setupNetworkInterceptors()?.forEach { interceptor ->
+      okHttpClientBuilder.addNetworkInterceptor(interceptor)
     }
 
     if (builtInCache != null)
@@ -439,6 +439,18 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
   }
 
   /**
+   * Override this method to setup an app [Interceptor] list (= always intercept call).
+   *
+   * @return the [Interceptor] list that the [httpClient] builder will use.
+   *
+   * Pay attention that the order you add them is important.
+   */
+  open fun setupFirstAppInterceptors(): List<Interceptor>?
+  {
+    return null
+  }
+
+  /**
    * Override this method to setup a network [Interceptor] list (= only intercept network call).
    *
    * @return the [Interceptor] list that the [httpClient] builder will use.
@@ -446,6 +458,18 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
    * Pay attention that the order you add them is important.
    */
   open fun setupNetworkInterceptors(): List<Interceptor>?
+  {
+    return null
+  }
+
+  /**
+   * Override this method to setup a network [Interceptor] list (= only intercept network call).
+   *
+   * @return the [Interceptor] list that the [httpClient] builder will use.
+   *
+   * Pay attention that the order you add them is important.
+   */
+  open fun setupFirstNetworkInterceptors(): List<Interceptor>?
   {
     return null
   }
