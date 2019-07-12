@@ -11,6 +11,18 @@ import java.util.concurrent.TimeUnit
  * @since 2019.07.10
  */
 
+/**
+ * A class where you configure your service with an implemented authenticator
+ *
+ * @param[authProvider] [AuthProvider] object with the configuration for the authentication.
+ * @param[api] interface where you implement your retrofit calls, see [Retrofit.create].
+ * @param[baseUrl] base url of the API you want to reach.
+ * @param[connectTimeout] the connect timeout is applied when connecting a TCP socket to the target host.
+ * @param[readTimeout] the read timeout is applied to both the TCP socket and for individual read IO operations including on [Source] of the [Response].
+ * @param[writeTimeout] the write timeout is applied for individual write IO operations.
+ * @param[withBuiltInCache] class to configure the cache and its default values. You must [setupCache]. If set to null, the built in cache is disabled and you don't need to [setupCache]. See [BuiltInCache].
+ *
+ */
 abstract class AuthJacksonRetrofitWebServiceCaller<out API>
 @JvmOverloads
 constructor(private val authProvider: AuthProvider,
@@ -29,24 +41,35 @@ constructor(private val authProvider: AuthProvider,
       authProvider.apply {
         val accessToken = getAccessToken()
 
-        if (accessToken == null || response.request().header("Authorization") != "${accessToken.tokenType} ${accessToken.accessToken}")
+        // We don't want to try to refresh the token more than one time
+        if (responseCount(response) <= 1 && accessToken != null)
         {
-          authProvider.setAccessToken(null)
-        }
-        else
-        {
-          val newAccessToken = executeAuth(authService?.refreshToken(getAuthRoute(), accessToken.refreshToken))
-          authProvider.setAccessToken(newAccessToken)
+          try
+          {
+            setAccessToken(executeAuth(authService?.refreshToken(getAuthRoute(), accessToken.refreshToken)))
+          }
+          catch (exception: Exception)
+          {
+            debug("Call of refresh token failed with exception: ${exception.printStackTrace()}")
+            setAccessToken(null)
+          }
 
-          authProvider.getAccessToken()?.also { accessToken ->
-            return response.request().newBuilder()
-                .header("Authorization", "${accessToken.tokenType} ${accessToken.accessToken}")
-                .build()
+          getAccessToken()?.apply {
+            val newAuthorization = "${this.tokenType} ${this.accessToken}"
+
+            // We don't want to try the call two times with the same token
+            if (response.request().header("Authorization") != newAuthorization)
+            {
+              return response.request().newBuilder()
+                  .header("Authorization", newAuthorization)
+                  .build()
+            }
           }
         }
-      }
 
-      return null
+        setAccessToken(null)
+        return null
+      }
     }
 
     override fun intercept(chain: Interceptor.Chain): Response
@@ -64,6 +87,20 @@ constructor(private val authProvider: AuthProvider,
       }
 
       return chain.proceed(newRequest.build())
+    }
+
+    private fun responseCount(response: Response): Int
+    {
+      var responseHolder: Response? = response
+      var result = 1
+
+      while (responseHolder?.priorResponse() != null)
+      {
+        result++
+        responseHolder = response.priorResponse()
+      }
+
+      return result
     }
   }
 
@@ -95,6 +132,15 @@ constructor(private val authProvider: AuthProvider,
     }
   }
 
+
+  /**
+   * Method to login the user with the implemented authenticator.
+   *
+   * @param[username] the username of the user to connect.
+   * @param[password] the password of the user to connect.
+   *
+   * @return the success of the connection.
+   */
   @WorkerThread
   protected fun loginUser(username: String, password: String): Boolean
   {
@@ -106,6 +152,7 @@ constructor(private val authProvider: AuthProvider,
     }
     catch (exception: Exception)
     {
+      debug("Call of login failed with exception: ${exception.printStackTrace()}")
       null
     }
 

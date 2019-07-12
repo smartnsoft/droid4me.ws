@@ -31,7 +31,8 @@ class Authenticator
       NORMAL,
       TOKEN_ERROR,
       TOKEN_AND_REFRESH_ERROR,
-      WRONG_XAPIKEY
+      WRONG_XAPIKEY,
+      SAME_REFRESH
     }
 
     private class AuthSimpleWebServiceCaller(val authProvider: AuthProvider, builtInCache: BuiltInCache? = BuiltInCache(shouldReturnErrorResponse = true), baseUrl: String) : AuthJacksonRetrofitWebServiceCaller<InfoAPI>(api = InfoAPI::class.java, baseUrl = baseUrl, builtInCache = builtInCache, authProvider = authProvider)
@@ -44,7 +45,12 @@ class Authenticator
 
       fun info(): Response?
       {
-        return executeResponse(service.getInfo())
+        return executeResponse(service.getInfo(), CachePolicy(FetchPolicyType.NETWORK_THEN_CACHE, 120))
+      }
+
+      fun infoOnlyCache(): Response?
+      {
+        return executeResponse(service.getInfo(), CachePolicy(FetchPolicyType.ONLY_CACHE))
       }
 
       fun login(username: String, password: String): Boolean
@@ -85,43 +91,63 @@ class Authenticator
               keyValue[0] to keyValue[1]
             }.toMap()
 
-            return if (params["username"] == "user" && params["password"] == "pwd" && params["grant_type"] == "password")
+            return if (behavior == Companion.ServerBehavior.SAME_REFRESH)
             {
-              MockResponse().setResponseCode(200)
-                  .setBody("{\n" +
-                      "  \"access_token\":\"abc\",\n" +
-                      "  \"refresh_token\":\"123\",\n" +
-                      "  \"expires_in\":3000,\n" +
-                      "  \"token_type\":\"Bearer\"\n" +
-                      "}")
-            }
-            else if (params["refresh_token"] == "123" && params["grant_type"] == "refresh_token")
-            {
-              MockResponse().setResponseCode(200)
-                  .setBody("{\n" +
-                      "  \"access_token\":\"def\",\n" +
-                      "  \"refresh_token\":\"456\",\n" +
-                      "  \"expires_in\":3000,\n" +
-                      "  \"token_type\":\"Bearer\"\n" +
-                      "}")
-            }
-            else if (params["refresh_token"] == "456" && params["grant_type"] == "refresh_token")
-            {
-              MockResponse().setResponseCode(200)
-                  .setBody("{\n" +
-                      "  \"access_token\":\"ghi\",\n" +
-                      "  \"refresh_token\":\"789\",\n" +
-                      "  \"expires_in\":3000,\n" +
-                      "  \"token_type\":\"Bearer\"\n" +
-                      "}")
+              if (params["username"] == "user" && params["password"] == "pwd" && params["grant_type"] == "password")
+              {
+                MockResponse().setResponseCode(200)
+                    .setBody("{\n" +
+                        "  \"access_token\":\"abc\",\n" +
+                        "  \"refresh_token\":\"123\",\n" +
+                        "  \"expires_in\":3000,\n" +
+                        "  \"token_type\":\"Bearer\"\n" +
+                        "}")
+              }
+              else if (params["refresh_token"] == "123" && params["grant_type"] == "refresh_token")
+              {
+                MockResponse().setResponseCode(200)
+                    .setBody("{\n" +
+                        "  \"access_token\":\"abc\",\n" +
+                        "  \"refresh_token\":\"123\",\n" +
+                        "  \"expires_in\":3000,\n" +
+                        "  \"token_type\":\"Bearer\"\n" +
+                        "}")
+              }
+              else
+              {
+                MockResponse().setResponseCode(403)
+              }
             }
             else
             {
-              MockResponse().setResponseCode(403)
+              if (params["username"] == "user" && params["password"] == "pwd" && params["grant_type"] == "password")
+              {
+                MockResponse().setResponseCode(200)
+                    .setBody("{\n" +
+                        "  \"access_token\":\"abc\",\n" +
+                        "  \"refresh_token\":\"123\",\n" +
+                        "  \"expires_in\":3000,\n" +
+                        "  \"token_type\":\"Bearer\"\n" +
+                        "}")
+              }
+              else if (params["refresh_token"] == "123" && params["grant_type"] == "refresh_token")
+              {
+                MockResponse().setResponseCode(200)
+                    .setBody("{\n" +
+                        "  \"access_token\":\"def\",\n" +
+                        "  \"refresh_token\":\"456\",\n" +
+                        "  \"expires_in\":3000,\n" +
+                        "  \"token_type\":\"Bearer\"\n" +
+                        "}")
+              }
+              else
+              {
+                MockResponse().setResponseCode(403)
+              }
             }
           }
 
-          if (request.path == "/info" )
+          if (request.path == "/info")
           {
             if (request.getHeader("Authorization")?.isNotBlank() == true)
             {
@@ -148,7 +174,14 @@ class Authenticator
                   else
                     return MockResponse().setResponseCode(401)
                 }
-                Companion.ServerBehavior.WRONG_XAPIKEY           ->
+                Companion.ServerBehavior.SAME_REFRESH            ->
+                {
+                  if (request.getHeader("Authorization") == "Bearer def")
+                    return MockResponse().setResponseCode(200).setBody("{\\\"info\\\":{\\\"name\":\"Lucas Albuquerque\",\"age\":\"21\",\"gender\":\"male\"}}")
+                  else
+                    return MockResponse().setResponseCode(401)
+                }
+                else                                             ->
                 {
                 }
               }
@@ -196,14 +229,25 @@ class Authenticator
   }
 
   @Test
+  fun loginAndInfoOK()
+  {
+    initializeServer(Companion.ServerBehavior.NORMAL)
+
+    serviceCaller.authProvider.setAccessToken(null)
+    serviceCaller.login("user", "pwd")
+
+    assert(serviceCaller.info()?.code == 200 && serviceCaller.authProvider.getAccessToken() != null)
+  }
+
+  @Test
   fun refreshTokenOK()
   {
     initializeServer(Companion.ServerBehavior.TOKEN_ERROR)
 
     serviceCaller.authProvider.setAccessToken(null)
-    serviceCaller.login("user", "pwd").also {
-      assert(serviceCaller.info()?.code == 200)
-    }
+    serviceCaller.login("user", "pwd")
+
+    assert(serviceCaller.info()?.code == 200 && serviceCaller.authProvider.getAccessToken() != null)
   }
 
   @Test
@@ -213,7 +257,19 @@ class Authenticator
 
     serviceCaller.authProvider.setAccessToken(null)
     serviceCaller.login("usr", "pwd")
-    assert(serviceCaller.info()?.code == 403)
+
+    assert(serviceCaller.info()?.code == 403 && serviceCaller.authProvider.getAccessToken() == null)
+  }
+
+  @Test
+  fun tokenIsTheSame()
+  {
+    initializeServer(Companion.ServerBehavior.SAME_REFRESH)
+
+    serviceCaller.authProvider.setAccessToken(null)
+    serviceCaller.login("user", "pwd")
+
+    assert(serviceCaller.info()?.code == 401 && serviceCaller.authProvider.getAccessToken() == null)
   }
 
   @Test
@@ -222,19 +278,22 @@ class Authenticator
     initializeServer(Companion.ServerBehavior.TOKEN_AND_REFRESH_ERROR)
 
     serviceCaller.authProvider.setAccessToken(null)
-    serviceCaller.login("user", "pwd").also {
-      assert(serviceCaller.info()?.code == 401)
-    }
+    serviceCaller.login("user", "pwd")
+
+    assert(serviceCaller.info()?.code == 401 && serviceCaller.authProvider.getAccessToken() == null)
   }
 
   @Test
-  fun loginAndInfoOK()
+  fun noCacheReturnOn401()
   {
     initializeServer(Companion.ServerBehavior.NORMAL)
 
     serviceCaller.authProvider.setAccessToken(null)
-    serviceCaller.login("user", "pwd").also {
-      assert(serviceCaller.info()?.code == 200)
-    }
+    serviceCaller.login("user", "pwd")
+    serviceCaller.info()
+    serviceCaller.authProvider.setAccessToken(null)
+
+    assert(serviceCaller.info()?.code == 403 && serviceCaller.authProvider.getAccessToken() == null)
+    assert(serviceCaller.infoOnlyCache()?.code == 200)
   }
 }

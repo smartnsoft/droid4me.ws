@@ -443,7 +443,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
    *
    * @return the [Interceptor] list that the [httpClient] builder will use.
    *
-   * Pay attention that the order you add them is important.
+   * Pay attention that the order you add them is important. These items are set first.
    */
   open fun setupFirstAppInterceptors(): List<Interceptor>?
   {
@@ -467,7 +467,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
    *
    * @return the [Interceptor] list that the [httpClient] builder will use.
    *
-   * Pay attention that the order you add them is important.
+   * Pay attention that the order you add them is important. These items are set first.
    */
   open fun setupFirstNetworkInterceptors(): List<Interceptor>?
   {
