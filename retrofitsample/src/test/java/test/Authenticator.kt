@@ -15,8 +15,6 @@ import org.junit.BeforeClass
 
 
 /**
- * The class description here.
- *
  * @author David Fournier
  * @since 2019.06.20
  */
@@ -32,6 +30,7 @@ class Authenticator
       TOKEN_ERROR,
       TOKEN_AND_REFRESH_ERROR,
       WRONG_XAPIKEY,
+      EMPTY_XAPIKEY,
       SAME_REFRESH
     }
 
@@ -206,7 +205,7 @@ class Authenticator
 
         override fun getXApiKey(): String
         {
-          return InfoAPI.apiToken
+          return if (behavior == Companion.ServerBehavior.EMPTY_XAPIKEY) "" else InfoAPI.apiToken
         }
 
         var _accessToken: AccessToken? = null
@@ -257,6 +256,29 @@ class Authenticator
 
     serviceCaller.authProvider.setAccessToken(null)
     serviceCaller.login("usr", "pwd")
+
+    assert(serviceCaller.info()?.code == 403 && serviceCaller.authProvider.getAccessToken() == null)
+  }
+
+  @Test
+  fun wrongXApiKey()
+  {
+    initializeServer(Companion.ServerBehavior.WRONG_XAPIKEY)
+
+    serviceCaller.authProvider.setAccessToken(null)
+    serviceCaller.login("user", "pwd")
+
+    assert(serviceCaller.info()?.code == 403 && serviceCaller.authProvider.getAccessToken() == null)
+  }
+
+
+  @Test
+  fun emptyXApiKey()
+  {
+    initializeServer(Companion.ServerBehavior.EMPTY_XAPIKEY)
+
+    serviceCaller.authProvider.setAccessToken(null)
+    serviceCaller.login("user", "pwd")
 
     assert(serviceCaller.info()?.code == 403 && serviceCaller.authProvider.getAccessToken() == null)
   }

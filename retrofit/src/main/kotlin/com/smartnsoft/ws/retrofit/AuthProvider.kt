@@ -3,8 +3,6 @@ package com.smartnsoft.ws.retrofit
 import android.support.annotation.WorkerThread
 
 /**
- * The class description here.
- *
  * @author David Fournier
  * @since 2019.06.21
  */

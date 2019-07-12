@@ -4,8 +4,6 @@ import retrofit2.Call
 import retrofit2.http.*
 
 /**
- * The class description here.
- *
  * @author David Fournier
  * @since 2019.07.01
  */

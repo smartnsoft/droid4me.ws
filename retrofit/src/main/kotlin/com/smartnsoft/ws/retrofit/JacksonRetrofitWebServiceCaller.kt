@@ -12,7 +12,6 @@ import retrofit2.converter.jackson.JacksonConverterFactory
 import retrofit2.converter.scalars.ScalarsConverterFactory
 
 /**
- *
  * @author David Fournier
  * @since 2018.03.26
  */

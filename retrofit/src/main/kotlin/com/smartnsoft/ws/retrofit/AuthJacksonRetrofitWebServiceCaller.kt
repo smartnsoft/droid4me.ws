@@ -1,9 +1,11 @@
 package com.smartnsoft.ws.retrofit
 
 import android.support.annotation.WorkerThread
+import com.smartnsoft.droid4me.ext.json.jackson.JacksonExceptions
 import okhttp3.*
 import retrofit2.Call
 import retrofit2.Retrofit
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /**
@@ -34,6 +36,13 @@ constructor(private val authProvider: AuthProvider,
             builtInCache: BuiltInCache? = BuiltInCache())
   : JacksonRetrofitWebServiceCaller<API>(api, baseUrl, connectTimeout, readTimeout, writeTimeout, builtInCache)
 {
+  companion object
+  {
+
+    const val MAX_RETRIES = 1
+
+  }
+
   private inner class TokenAuthenticatorInterceptor : Authenticator, Interceptor
   {
     override fun authenticate(route: Route?, response: Response): Request?
@@ -41,14 +50,19 @@ constructor(private val authProvider: AuthProvider,
       authProvider.apply {
         val accessToken = getAccessToken()
 
-        // We don't want to try to refresh the token more than one time
-        if (responseCount(response) <= 1 && accessToken != null)
+        // We don't want to try to refresh the token more than [MAX_RETRIES]
+        if (responseCount(response) <= MAX_RETRIES && accessToken != null)
         {
           try
           {
             setAccessToken(executeAuth(authService?.refreshToken(getAuthRoute(), accessToken.refreshToken)))
           }
-          catch (exception: Exception)
+          catch (exception: JacksonExceptions.JacksonParsingException)
+          {
+            debug("Call of refresh token failed with exception: ${exception.printStackTrace()}")
+            setAccessToken(null)
+          }
+          catch (exception: IOException)
           {
             debug("Call of refresh token failed with exception: ${exception.printStackTrace()}")
             setAccessToken(null)
@@ -57,7 +71,7 @@ constructor(private val authProvider: AuthProvider,
           getAccessToken()?.apply {
             val newAuthorization = "${this.tokenType} ${this.accessToken}"
 
-            // We don't want to try the call two times with the same token
+            // We don't want to try the call with the same token twice
             if (response.request().header("Authorization") != newAuthorization)
             {
               return response.request().newBuilder()
@@ -67,6 +81,7 @@ constructor(private val authProvider: AuthProvider,
           }
         }
 
+        // Fail case
         setAccessToken(null)
         return null
       }
@@ -94,7 +109,7 @@ constructor(private val authProvider: AuthProvider,
       var responseHolder: Response? = response
       var result = 1
 
-      while (responseHolder?.priorResponse() != null)
+      while (result <= MAX_RETRIES && responseHolder?.priorResponse() != null)
       {
         result++
         responseHolder = response.priorResponse()
@@ -105,7 +120,12 @@ constructor(private val authProvider: AuthProvider,
   }
 
   private val httpAuthClient: OkHttpClient by lazy {
-    computeHttpAuthClient()
+    OkHttpClient.Builder()
+        .connectTimeout(connectTimeout, TimeUnit.MILLISECONDS)
+        .readTimeout(readTimeout, TimeUnit.MILLISECONDS)
+        .writeTimeout(writeTimeout, TimeUnit.MILLISECONDS)
+        .addNetworkInterceptor(TokenAuthenticatorInterceptor())
+        .build()
   }
 
   private val authService: AuthAPI? by lazy {
@@ -193,17 +213,5 @@ constructor(private val authProvider: AuthProvider,
 
       return mapResponseToObject(responseBody, AccessToken::class.java)
     } ?: return null
-  }
-
-  private fun computeHttpAuthClient(): OkHttpClient
-  {
-    val okHttpAuthClientBuilder = OkHttpClient.Builder()
-        .connectTimeout(connectTimeout, TimeUnit.MILLISECONDS)
-        .readTimeout(readTimeout, TimeUnit.MILLISECONDS)
-        .writeTimeout(writeTimeout, TimeUnit.MILLISECONDS)
-
-    okHttpAuthClientBuilder.addNetworkInterceptor(TokenAuthenticatorInterceptor())
-
-    return okHttpAuthClientBuilder.build()
   }
 }
