@@ -7,7 +7,6 @@ import android.util.Log
 import com.smartnsoft.droid4me.app.SmartCommands
 import com.smartnsoft.retrofitsample.ws.TimeApi
 import com.smartnsoft.retrofitsample.ws.TimeWebServiceCaller
-import com.smartnsoft.retrofitsample.ws.UNSAWebServiceCaller
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity
@@ -36,9 +35,6 @@ class MainActivity
         @Throws(Exception::class)
         override fun runGuarded()
         {
-          UNSAWebServiceCaller.getPublications(false)?.also {
-            Log.w(TAG, "lol")
-          }
           /*TimeWebServiceCaller.getTime()?.also {
             Log.w(TAG, "getTime: $it")
           }*/

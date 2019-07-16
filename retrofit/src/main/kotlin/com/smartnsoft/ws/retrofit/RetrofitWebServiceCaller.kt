@@ -2,6 +2,7 @@ package com.smartnsoft.ws.retrofit
 
 import android.support.annotation.WorkerThread
 import com.fasterxml.jackson.core.type.TypeReference
+import com.smartnsoft.droid4me.ext.json.jackson.JacksonExceptions
 import com.smartnsoft.droid4me.log.Logger
 import com.smartnsoft.droid4me.log.LoggerFactory
 import com.smartnsoft.droid4me.ws.WebServiceClient
@@ -12,6 +13,7 @@ import retrofit2.Call
 import retrofit2.Converter
 import retrofit2.Retrofit
 import java.io.File
+import java.io.IOException
 import java.net.URI
 import java.net.URISyntaxException
 import java.net.UnknownHostException
@@ -326,18 +328,9 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
   }
 
   protected open val service: API by lazy {
-    val url = if (baseUrl.endsWith("/"))
-    {
-      baseUrl
-    }
-    else
-    {
-      "$baseUrl/"
-    }
-
     val serviceBuilder = Retrofit
         .Builder()
-        .baseUrl(url)
+        .baseUrl(baseUrl)
         .client(httpClient)
 
     converterFactories.forEach { converterFactory ->
@@ -611,7 +604,8 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
 
   @WorkerThread
   @JvmOverloads
-  protected fun <T : Any> executeResponse(call: Call<T>?, cachePolicy: CachePolicy = CachePolicy()): Response?
+  @Throws(IOException::class)
+  protected fun <T> executeResponse(call: Call<T>?, cachePolicy: CachePolicy = CachePolicy()): Response?
   {
     call?.request()?.let { request ->
       debug("Starting execution of call ${request.method()} to ${request.url()} with cache policy ${cachePolicy.fetchPolicyType.name}")
@@ -627,7 +621,8 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
 
   @WorkerThread
   @JvmOverloads
-  protected fun <T : Any> execute(clazz: Class<T>, call: Call<T>?, cachePolicy: CachePolicy = CachePolicy()): T?
+  @Throws(IOException::class, JacksonExceptions.JacksonParsingException::class)
+  protected fun <T> execute(clazz: Class<T>, call: Call<T>?, cachePolicy: CachePolicy = CachePolicy()): T?
   {
     call?.request()?.let { request ->
       debug("Starting execution of call ${request.method()} to ${request.url()} with cache policy ${cachePolicy.fetchPolicyType.name}")
@@ -642,7 +637,35 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
 
   @WorkerThread
   @JvmOverloads
-  protected fun <T : Any> execute(typeReference: TypeReference<T>, call: Call<T>?, cachePolicy: CachePolicy = CachePolicy()): T?
+  @Throws(IOException::class, JacksonExceptions.JacksonParsingException::class)
+  protected fun <SuccessClass, ErrorClass> executeWithErrorResponse(clazz: Class<SuccessClass>, call: Call<SuccessClass>?, errorClazz: Class<ErrorClass>, cachePolicy: CachePolicy = CachePolicy()): ResponseWithError<SuccessClass, ErrorClass>?
+  {
+    call?.request()?.let { request ->
+      debug("Starting execution of call ${request.method()} to ${request.url()} with cache policy ${cachePolicy.fetchPolicyType.name}")
+
+      val newRequest = request.newBuilder().tag(if (builtInCache != null) cachePolicy else null).build()
+      val response: Response? = httpClient.newCall(newRequest).execute()
+      val success = response?.isSuccessful
+      val responseBody = response?.body()?.string()
+      val responseWithError = ResponseWithError<SuccessClass, ErrorClass>()
+
+      if (success == true)
+      {
+        responseWithError.successResponse = mapResponseToObject(responseBody, clazz)
+      }
+      else
+      {
+        responseWithError.errorResponse = mapResponseToObject(responseBody, errorClazz)
+      }
+
+      return responseWithError
+    } ?: return null
+  }
+
+  @WorkerThread
+  @JvmOverloads
+  @Throws(IOException::class, JacksonExceptions.JacksonParsingException::class)
+  protected fun <T> execute(typeReference: TypeReference<T>, call: Call<T>?, cachePolicy: CachePolicy = CachePolicy()): T?
   {
     call?.request()?.let { request ->
       debug("Starting execution of call ${request.method()} to ${request.url()} with cache policy ${cachePolicy.fetchPolicyType.name}")
@@ -657,7 +680,35 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
 
   @WorkerThread
   @JvmOverloads
-  protected fun <T : Any> execute(call: Call<T>?, cachePolicy: CachePolicy = CachePolicy()): String?
+  @Throws(IOException::class, JacksonExceptions.JacksonParsingException::class)
+  protected fun <SuccessClass, ErrorClass> executeWithErrorResponse(typeReference: TypeReference<SuccessClass>, call: Call<SuccessClass>?, errorClazz: Class<ErrorClass>, cachePolicy: CachePolicy = CachePolicy()): ResponseWithError<SuccessClass, ErrorClass>?
+  {
+    call?.request()?.let { request ->
+      debug("Starting execution of call ${request.method()} to ${request.url()} with cache policy ${cachePolicy.fetchPolicyType.name}")
+
+      val newRequest = request.newBuilder().tag(if (builtInCache != null) cachePolicy else null).build()
+      val response: Response? = httpClient.newCall(newRequest).execute()
+      val success = response?.isSuccessful
+      val responseBody = response?.body()?.string()
+      val responseWithError = ResponseWithError<SuccessClass, ErrorClass>()
+
+      if (success == true)
+      {
+        responseWithError.successResponse = mapResponseToObject(responseBody, typeReference)
+      }
+      else
+      {
+        responseWithError.errorResponse = mapResponseToObject(responseBody, errorClazz)
+      }
+
+      return responseWithError
+    } ?: return null
+  }
+
+  @WorkerThread
+  @JvmOverloads
+  @Throws(IOException::class)
+  protected fun <T> execute(call: Call<T>?, cachePolicy: CachePolicy = CachePolicy()): String?
   {
     call?.request()?.let { request ->
       debug("Starting execution of call ${request.method()} to ${request.url()} with cache policy ${cachePolicy.fetchPolicyType.name}")
@@ -674,6 +725,14 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
     if (log.isDebugEnabled)
     {
       log.debug(message)
+    }
+  }
+
+  protected fun warn(message: String)
+  {
+    if (log.isWarnEnabled)
+    {
+      log.warn(message)
     }
   }
 

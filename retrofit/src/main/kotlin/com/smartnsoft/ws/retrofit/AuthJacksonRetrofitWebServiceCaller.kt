@@ -55,16 +55,16 @@ constructor(private val authProvider: AuthProvider,
         {
           try
           {
-            setAccessToken(executeAuth(authService?.refreshToken(getAuthRoute(), accessToken.refreshToken)))
-          }
-          catch (exception: JacksonExceptions.JacksonParsingException)
-          {
-            debug("Call of refresh token failed with exception: ${exception.printStackTrace()}")
-            setAccessToken(null)
+            setAccessToken(executeAuth(authService?.refreshToken(getAuthRoute(), accessToken.refreshToken))?.successResponse)
           }
           catch (exception: IOException)
           {
-            debug("Call of refresh token failed with exception: ${exception.printStackTrace()}")
+            warn("Call of refresh token failed with exception: ${exception.printStackTrace()}")
+            setAccessToken(null)
+          }
+          catch (exception: JacksonExceptions.JacksonParsingException)
+          {
+            warn("Call of refresh token failed with exception: ${exception.printStackTrace()}")
             setAccessToken(null)
           }
 
@@ -130,18 +130,9 @@ constructor(private val authProvider: AuthProvider,
 
   private val authService: AuthAPI? by lazy {
     authProvider.run {
-      val authRoute = if (getAuthRoute().endsWith("/"))
-      {
-        getAuthRoute()
-      }
-      else
-      {
-        "${getAuthRoute()}/"
-      }
-
       val serviceBuilder = Retrofit
           .Builder()
-          .baseUrl(authRoute)
+          .baseUrl(getAuthRoute())
           .client(httpAuthClient)
 
       converterFactories.forEach { converterFactory ->
@@ -162,21 +153,26 @@ constructor(private val authProvider: AuthProvider,
    * @return the success of the connection.
    */
   @WorkerThread
-  protected fun loginUser(username: String, password: String): Boolean
+  protected fun loginUser(username: String, password: String): ResponseWithError<AccessToken, ErrorResponse>?
   {
-    val newAccessToken = try
+    val responseWithError: ResponseWithError<AccessToken, ErrorResponse>? = try
     {
-      executeAuth(authService?.authToken(authProvider.getAuthRoute(), username, password))?.also { accessToken ->
-        authProvider.setAccessToken(accessToken)
-      }
+      executeAuth(authService?.authToken(authProvider.getAuthRoute(), username, password))
     }
-    catch (exception: Exception)
+    catch (exception: IOException)
     {
-      debug("Call of login failed with exception: ${exception.printStackTrace()}")
+      warn("Call of login failed with exception: ${exception.printStackTrace()}")
+      null
+    }
+    catch (exception: JacksonExceptions.JacksonParsingException)
+    {
+      warn("Call of login failed with exception: ${exception.printStackTrace()}")
       null
     }
 
-    return newAccessToken != null
+    authProvider.setAccessToken(responseWithError?.successResponse)
+
+    return responseWithError
   }
 
   final override fun setupAuthenticator(): Authenticator?
@@ -202,16 +198,28 @@ constructor(private val authProvider: AuthProvider,
   }
 
   @WorkerThread
-  private fun executeAuth(call: Call<AccessToken>?): AccessToken?
+  @Throws(IOException::class, JacksonExceptions.JacksonParsingException::class)
+  private fun executeAuth(call: Call<AccessToken>?): ResponseWithError<AccessToken, ErrorResponse>?
   {
     call?.request()?.let { request ->
       debug("Starting execution of auth call ${request.method()} to ${request.url()}")
 
       val newRequest = request.newBuilder().build()
       val response: Response? = httpAuthClient.newCall(newRequest).execute()
+      val success = response?.isSuccessful
       val responseBody = response?.body()?.string()
+      val responseWithError = ResponseWithError<AccessToken, ErrorResponse>()
 
-      return mapResponseToObject(responseBody, AccessToken::class.java)
+      if (success == true)
+      {
+        responseWithError.successResponse = mapResponseToObject(responseBody, AccessToken::class.java)
+      }
+      else
+      {
+        responseWithError.errorResponse = mapResponseToObject(responseBody, ErrorResponse::class.java)
+      }
+
+      return responseWithError
     } ?: return null
   }
 }

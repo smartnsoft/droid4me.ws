@@ -1,9 +1,8 @@
 package test
 
 import com.smartnsoft.retrofitsample.ws.InfoAPI
-import com.smartnsoft.ws.retrofit.AccessToken
-import com.smartnsoft.ws.retrofit.AuthJacksonRetrofitWebServiceCaller
-import com.smartnsoft.ws.retrofit.AuthProvider
+import com.smartnsoft.retrofitsample.ws.InfoContainer
+import com.smartnsoft.ws.retrofit.*
 import okhttp3.*
 import okhttp3.mockwebserver.Dispatcher
 import org.junit.Test
@@ -11,7 +10,6 @@ import java.io.File
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.RecordedRequest
 import okhttp3.mockwebserver.MockWebServer
-import org.junit.BeforeClass
 
 
 /**
@@ -52,9 +50,14 @@ class Authenticator
         return executeResponse(service.getInfo(), CachePolicy(FetchPolicyType.ONLY_CACHE))
       }
 
+      fun infoWithError(): ResponseWithError<InfoContainer, ErrorResponse>?
+      {
+        return executeWithErrorResponse(InfoContainer::class.java, service.getInfo(), ErrorResponse::class.java, CachePolicy(FetchPolicyType.NETWORK_THEN_CACHE, 120))
+      }
+
       fun login(username: String, password: String): Boolean
       {
-        return loginUser(username, password)
+        return loginUser(username, password)?.successResponse != null
       }
 
 
@@ -81,9 +84,13 @@ class Authenticator
           if (xApiKey == null || xApiKey != xApiKeyServer)
           {
             return MockResponse().setResponseCode(403)
+                .setBody("{\n" +
+                    "  \"status_code\": 403,\n" +
+                    "  \"message\":\"Forbidden\"\n" +
+                    "}")
           }
 
-          if (request.path == "/auth")
+          if (request.path == "/auth/")
           {
             val params = request.body.toString().removePrefix("[text=").removeSuffix("]").split("&").map {
               val keyValue = it.split("=")
@@ -115,6 +122,10 @@ class Authenticator
               else
               {
                 MockResponse().setResponseCode(403)
+                    .setBody("{\n" +
+                        "  \"status_code\": 403,\n" +
+                        "  \"message\":\"Forbidden\"\n" +
+                        "}")
               }
             }
             else
@@ -142,11 +153,15 @@ class Authenticator
               else
               {
                 MockResponse().setResponseCode(403)
+                    .setBody("{\n" +
+                        "  \"status_code\": 403,\n" +
+                        "  \"message\":\"Forbidden\"\n" +
+                        "}")
               }
             }
           }
 
-          if (request.path == "/info")
+          if (request.path == "/info/")
           {
             if (request.getHeader("Authorization")?.isNotBlank() == true)
             {
@@ -155,16 +170,24 @@ class Authenticator
                 Companion.ServerBehavior.NORMAL                  ->
                 {
                   if (request.getHeader("Authorization") == "Bearer abc")
-                    return MockResponse().setResponseCode(200).setBody("{\\\"info\\\":{\\\"name\":\"Lucas Albuquerque\",\"age\":\"21\",\"gender\":\"male\"}}")
+                    return MockResponse().setResponseCode(200).setBody("{\"info\":{\"name\":\"Lucas Albuquerque\",\"age\":\"21\",\"gender\":\"male\"}}")
                   else
                     return MockResponse().setResponseCode(401)
+                        .setBody("{\n" +
+                            "  \"status_code\": 401,\n" +
+                            "  \"message\":\"Unauthorized\"\n" +
+                            "}")
                 }
                 Companion.ServerBehavior.TOKEN_ERROR             ->
                 {
                   if (request.getHeader("Authorization") == "Bearer def")
-                    return MockResponse().setResponseCode(200).setBody("{\\\"info\\\":{\\\"name\":\"Lucas Albuquerque\",\"age\":\"21\",\"gender\":\"male\"}}")
+                    return MockResponse().setResponseCode(200).setBody("{\"info\":{\"name\":\"Lucas Albuquerque\",\"age\":\"21\",\"gender\":\"male\"}}")
                   else
                     return MockResponse().setResponseCode(401)
+                        .setBody("{\n" +
+                            "  \"status_code\": 401,\n" +
+                            "  \"message\":\"Unauthorized\"\n" +
+                            "}")
                 }
                 Companion.ServerBehavior.TOKEN_AND_REFRESH_ERROR ->
                 {
@@ -172,6 +195,10 @@ class Authenticator
                     return MockResponse().setResponseCode(200).setBody("{\\\"info\\\":{\\\"name\":\"Lucas Albuquerque\",\"age\":\"21\",\"gender\":\"male\"}}")
                   else
                     return MockResponse().setResponseCode(401)
+                        .setBody("{\n" +
+                            "  \"status_code\": 401,\n" +
+                            "  \"message\":\"Unauthorized\"\n" +
+                            "}")
                 }
                 Companion.ServerBehavior.SAME_REFRESH            ->
                 {
@@ -179,6 +206,10 @@ class Authenticator
                     return MockResponse().setResponseCode(200).setBody("{\\\"info\\\":{\\\"name\":\"Lucas Albuquerque\",\"age\":\"21\",\"gender\":\"male\"}}")
                   else
                     return MockResponse().setResponseCode(401)
+                        .setBody("{\n" +
+                            "  \"status_code\": 401,\n" +
+                            "  \"message\":\"Unauthorized\"\n" +
+                            "}")
                 }
                 else                                             ->
                 {
@@ -188,10 +219,18 @@ class Authenticator
             else
             {
               return MockResponse().setResponseCode(403)
+                  .setBody("{\n" +
+                      "  \"status_code\": 403,\n" +
+                      "  \"message\":\"Forbidden\"\n" +
+                      "}")
             }
           }
 
           return MockResponse().setResponseCode(404)
+              .setBody("{\n" +
+                  "  \"status_code\": 404,\n" +
+                  "  \"message\":\"Not found\"\n" +
+                  "}")
         }
       }
       server.dispatcher = dispatcher
@@ -200,7 +239,7 @@ class Authenticator
       {
         override fun getAuthRoute(): String
         {
-          return mockServerBaseUrl + "auth"
+          return mockServerBaseUrl + "auth/"
         }
 
         override fun getXApiKey(): String
@@ -235,7 +274,7 @@ class Authenticator
     serviceCaller.authProvider.setAccessToken(null)
     serviceCaller.login("user", "pwd")
 
-    assert(serviceCaller.info()?.code == 200 && serviceCaller.authProvider.getAccessToken() != null)
+    assert(serviceCaller.infoWithError()?.successResponse != null && serviceCaller.authProvider.getAccessToken() != null)
   }
 
   @Test
@@ -246,7 +285,7 @@ class Authenticator
     serviceCaller.authProvider.setAccessToken(null)
     serviceCaller.login("user", "pwd")
 
-    assert(serviceCaller.info()?.code == 200 && serviceCaller.authProvider.getAccessToken() != null)
+    assert(serviceCaller.infoWithError()?.successResponse != null && serviceCaller.authProvider.getAccessToken() != null)
   }
 
   @Test
@@ -257,7 +296,7 @@ class Authenticator
     serviceCaller.authProvider.setAccessToken(null)
     serviceCaller.login("usr", "pwd")
 
-    assert(serviceCaller.info()?.code == 403 && serviceCaller.authProvider.getAccessToken() == null)
+    assert(serviceCaller.infoWithError()?.errorResponse?.statusCode == 403 && serviceCaller.authProvider.getAccessToken() == null)
   }
 
   @Test
@@ -268,7 +307,7 @@ class Authenticator
     serviceCaller.authProvider.setAccessToken(null)
     serviceCaller.login("user", "pwd")
 
-    assert(serviceCaller.info()?.code == 403 && serviceCaller.authProvider.getAccessToken() == null)
+    assert(serviceCaller.infoWithError()?.errorResponse?.statusCode == 403 && serviceCaller.authProvider.getAccessToken() == null)
   }
 
 
@@ -280,7 +319,7 @@ class Authenticator
     serviceCaller.authProvider.setAccessToken(null)
     serviceCaller.login("user", "pwd")
 
-    assert(serviceCaller.info()?.code == 403 && serviceCaller.authProvider.getAccessToken() == null)
+    assert(serviceCaller.infoWithError()?.errorResponse?.statusCode == 403 && serviceCaller.authProvider.getAccessToken() == null)
   }
 
   @Test
@@ -291,7 +330,7 @@ class Authenticator
     serviceCaller.authProvider.setAccessToken(null)
     serviceCaller.login("user", "pwd")
 
-    assert(serviceCaller.info()?.code == 401 && serviceCaller.authProvider.getAccessToken() == null)
+    assert(serviceCaller.infoWithError()?.errorResponse?.statusCode == 401 && serviceCaller.authProvider.getAccessToken() == null)
   }
 
   @Test
@@ -302,7 +341,7 @@ class Authenticator
     serviceCaller.authProvider.setAccessToken(null)
     serviceCaller.login("user", "pwd")
 
-    assert(serviceCaller.info()?.code == 401 && serviceCaller.authProvider.getAccessToken() == null)
+    assert(serviceCaller.infoWithError()?.errorResponse?.statusCode == 401 && serviceCaller.authProvider.getAccessToken() == null)
   }
 
   @Test
@@ -315,7 +354,7 @@ class Authenticator
     serviceCaller.info()
     serviceCaller.authProvider.setAccessToken(null)
 
-    assert(serviceCaller.info()?.code == 403 && serviceCaller.authProvider.getAccessToken() == null)
+    assert(serviceCaller.infoWithError()?.errorResponse?.statusCode == 403 && serviceCaller.authProvider.getAccessToken() == null)
     assert(serviceCaller.infoOnlyCache()?.code == 200)
   }
 }
