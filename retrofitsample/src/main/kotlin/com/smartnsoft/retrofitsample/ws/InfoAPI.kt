@@ -8,8 +8,6 @@ import retrofit2.http.*
 import java.io.Serializable
 
 /**
- * The class description here.
- *
  * @author David Fournier
  * @since 2019.07.01
  */

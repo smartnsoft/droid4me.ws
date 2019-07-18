@@ -1,4 +1,4 @@
-package com.smartnsoft.ws.retrofit
+package com.smartnsoft.ws.retrofit.bo
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonInclude
@@ -14,6 +14,6 @@ import java.io.Serializable
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class ErrorResponse
 (
-    @JsonProperty("status_code") var statusCode: Int,
-    @JsonProperty("message") var message: String
+    @JsonProperty("status_code") val statusCode: Int,
+    @JsonProperty("message") val message: String
 ) : Serializable

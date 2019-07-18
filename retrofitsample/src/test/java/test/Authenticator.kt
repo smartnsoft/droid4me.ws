@@ -2,7 +2,11 @@ package test
 
 import com.smartnsoft.retrofitsample.ws.InfoAPI
 import com.smartnsoft.retrofitsample.ws.InfoContainer
-import com.smartnsoft.ws.retrofit.*
+import com.smartnsoft.ws.retrofit.api.AuthProvider
+import com.smartnsoft.ws.retrofit.bo.AccessToken
+import com.smartnsoft.ws.retrofit.bo.ErrorResponse
+import com.smartnsoft.ws.retrofit.bo.ResponseWithError
+import com.smartnsoft.ws.retrofit.caller.AuthJacksonRetrofitWebServiceCaller
 import okhttp3.*
 import okhttp3.mockwebserver.Dispatcher
 import org.junit.Test
@@ -84,10 +88,11 @@ class Authenticator
           if (xApiKey == null || xApiKey != xApiKeyServer)
           {
             return MockResponse().setResponseCode(403)
-                .setBody("{\n" +
-                    "  \"status_code\": 403,\n" +
-                    "  \"message\":\"Forbidden\"\n" +
-                    "}")
+                .setBody("""{
+                              "status_code": 403,
+                              "message": "Forbidden"
+                            }"""
+                )
           }
 
           if (request.path == "/auth/")
@@ -102,30 +107,33 @@ class Authenticator
               if (params["username"] == "user" && params["password"] == "pwd" && params["grant_type"] == "password")
               {
                 MockResponse().setResponseCode(200)
-                    .setBody("{\n" +
-                        "  \"access_token\":\"abc\",\n" +
-                        "  \"refresh_token\":\"123\",\n" +
-                        "  \"expires_in\":3000,\n" +
-                        "  \"token_type\":\"Bearer\"\n" +
-                        "}")
+                    .setBody("""{
+                                  "access_token": "abc",
+                                  "refresh_token": "123",
+                                  "expires_in": 3000,
+                                  "token_type": "Bearer"
+                                }"""
+                    )
               }
               else if (params["refresh_token"] == "123" && params["grant_type"] == "refresh_token")
               {
                 MockResponse().setResponseCode(200)
-                    .setBody("{\n" +
-                        "  \"access_token\":\"abc\",\n" +
-                        "  \"refresh_token\":\"123\",\n" +
-                        "  \"expires_in\":3000,\n" +
-                        "  \"token_type\":\"Bearer\"\n" +
-                        "}")
+                    .setBody("""{
+                                  "access_token": "abc",
+                                  "refresh_token": "123",
+                                  "expires_in": 3000,
+                                  "token_type": "Bearer"
+                                }"""
+                    )
               }
               else
               {
                 MockResponse().setResponseCode(403)
-                    .setBody("{\n" +
-                        "  \"status_code\": 403,\n" +
-                        "  \"message\":\"Forbidden\"\n" +
-                        "}")
+                    .setBody("""{
+                                  "status_code": 403,
+                                  "message": "Forbidden"
+                                }"""
+                    )
               }
             }
             else
@@ -133,30 +141,33 @@ class Authenticator
               if (params["username"] == "user" && params["password"] == "pwd" && params["grant_type"] == "password")
               {
                 MockResponse().setResponseCode(200)
-                    .setBody("{\n" +
-                        "  \"access_token\":\"abc\",\n" +
-                        "  \"refresh_token\":\"123\",\n" +
-                        "  \"expires_in\":3000,\n" +
-                        "  \"token_type\":\"Bearer\"\n" +
-                        "}")
+                    .setBody("""{
+                                  "access_token": "abc",
+                                  "refresh_token": "123",
+                                  "expires_in": 3000,
+                                  "token_type": "Bearer"
+                                }"""
+                    )
               }
               else if (params["refresh_token"] == "123" && params["grant_type"] == "refresh_token")
               {
                 MockResponse().setResponseCode(200)
-                    .setBody("{\n" +
-                        "  \"access_token\":\"def\",\n" +
-                        "  \"refresh_token\":\"456\",\n" +
-                        "  \"expires_in\":3000,\n" +
-                        "  \"token_type\":\"Bearer\"\n" +
-                        "}")
+                    .setBody("""{
+                                  "access_token": "def",
+                                  "refresh_token": "456",
+                                  "expires_in": 3000,
+                                  "token_type": "Bearer"
+                                }"""
+                    )
               }
               else
               {
                 MockResponse().setResponseCode(403)
-                    .setBody("{\n" +
-                        "  \"status_code\": 403,\n" +
-                        "  \"message\":\"Forbidden\"\n" +
-                        "}")
+                    .setBody("""{
+                                  "status_code": 403,
+                                  "message": "Forbidden"
+                                }"""
+                    )
               }
             }
           }
@@ -170,46 +181,82 @@ class Authenticator
                 Companion.ServerBehavior.NORMAL                  ->
                 {
                   if (request.getHeader("Authorization") == "Bearer abc")
-                    return MockResponse().setResponseCode(200).setBody("{\"info\":{\"name\":\"Lucas Albuquerque\",\"age\":\"21\",\"gender\":\"male\"}}")
+                    return MockResponse().setResponseCode(200).setBody(
+                        """{
+                            "info": {
+                              "name": "Lucas Albuquerque",
+                              "age": "21",
+                              "gender": "male"
+                            }
+                          }"""
+                    )
                   else
                     return MockResponse().setResponseCode(401)
-                        .setBody("{\n" +
-                            "  \"status_code\": 401,\n" +
-                            "  \"message\":\"Unauthorized\"\n" +
-                            "}")
+                        .setBody("""{
+                                      "status_code": 401,
+                                      "message": "Unauthorized"
+                                    }"""
+                        )
                 }
                 Companion.ServerBehavior.TOKEN_ERROR             ->
                 {
                   if (request.getHeader("Authorization") == "Bearer def")
-                    return MockResponse().setResponseCode(200).setBody("{\"info\":{\"name\":\"Lucas Albuquerque\",\"age\":\"21\",\"gender\":\"male\"}}")
+                    return MockResponse().setResponseCode(200).setBody(
+                        """{
+                            "info": {
+                              "name": "Lucas Albuquerque",
+                              "age": "21",
+                              "gender": "male"
+                            }
+                          }"""
+                    )
                   else
                     return MockResponse().setResponseCode(401)
-                        .setBody("{\n" +
-                            "  \"status_code\": 401,\n" +
-                            "  \"message\":\"Unauthorized\"\n" +
-                            "}")
+                        .setBody("""{
+                                      "status_code": 401,
+                                      "message": "Unauthorized"
+                                    }"""
+                        )
                 }
                 Companion.ServerBehavior.TOKEN_AND_REFRESH_ERROR ->
                 {
                   if (request.getHeader("Authorization") == "Bearer ghi")
-                    return MockResponse().setResponseCode(200).setBody("{\\\"info\\\":{\\\"name\":\"Lucas Albuquerque\",\"age\":\"21\",\"gender\":\"male\"}}")
+                    return MockResponse().setResponseCode(200).setBody(
+                        """{
+                            "info": {
+                              "name": "Lucas Albuquerque",
+                              "age": "21",
+                              "gender": "male"
+                            }
+                          }"""
+                    )
                   else
                     return MockResponse().setResponseCode(401)
-                        .setBody("{\n" +
-                            "  \"status_code\": 401,\n" +
-                            "  \"message\":\"Unauthorized\"\n" +
-                            "}")
+                        .setBody("""{
+                                      "status_code": 401,
+                                      "message": "Unauthorized"
+                                    }"""
+                        )
                 }
                 Companion.ServerBehavior.SAME_REFRESH            ->
                 {
                   if (request.getHeader("Authorization") == "Bearer def")
-                    return MockResponse().setResponseCode(200).setBody("{\\\"info\\\":{\\\"name\":\"Lucas Albuquerque\",\"age\":\"21\",\"gender\":\"male\"}}")
+                    return MockResponse().setResponseCode(200).setBody(
+                        """{
+                            "info": {
+                              "name": "Lucas Albuquerque",
+                              "age": "21",
+                              "gender": "male"
+                            }
+                          }"""
+                    )
                   else
                     return MockResponse().setResponseCode(401)
-                        .setBody("{\n" +
-                            "  \"status_code\": 401,\n" +
-                            "  \"message\":\"Unauthorized\"\n" +
-                            "}")
+                        .setBody("""{
+                                      "status_code": 401,
+                                      "message": "Unauthorized"
+                                    }"""
+                        )
                 }
                 else                                             ->
                 {
@@ -219,18 +266,20 @@ class Authenticator
             else
             {
               return MockResponse().setResponseCode(403)
-                  .setBody("{\n" +
-                      "  \"status_code\": 403,\n" +
-                      "  \"message\":\"Forbidden\"\n" +
-                      "}")
+                  .setBody("""{
+                                  "status_code": 403,
+                                  "message": "Forbidden"
+                                }"""
+                  )
             }
           }
 
           return MockResponse().setResponseCode(404)
-              .setBody("{\n" +
-                  "  \"status_code\": 404,\n" +
-                  "  \"message\":\"Not found\"\n" +
-                  "}")
+              .setBody("""{
+                            "status_code": 404,
+                            "message": "Not found"
+                          }"""
+              )
         }
       }
       server.dispatcher = dispatcher

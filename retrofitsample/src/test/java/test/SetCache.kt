@@ -2,15 +2,13 @@ package test
 
 import com.smartnsoft.retrofitsample.bo.IP
 import com.smartnsoft.retrofitsample.ws.WSApi
-import com.smartnsoft.ws.retrofit.JacksonRetrofitWebServiceCaller
+import com.smartnsoft.ws.retrofit.caller.JacksonRetrofitWebServiceCaller
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
 /**
- * The class description here.
- *
  * @author David Fournier
  * @since 2019.06.19
  */
@@ -18,7 +16,8 @@ import java.io.File
 class SetCache
 {
 
-  private class SimpleWebServiceCaller(builtInCache: BuiltInCache? = BuiltInCache()) : JacksonRetrofitWebServiceCaller<WSApi>(api = WSApi::class.java, baseUrl = WSApi.url, withBuiltInCache = builtInCache)
+  private class SimpleWebServiceCaller(builtInCache: BuiltInCache? = BuiltInCache())
+    : JacksonRetrofitWebServiceCaller<WSApi>(api = WSApi::class.java, baseUrl = WSApi.url, withBuiltInCache = builtInCache)
   {
     fun getIp(): IP?
     {

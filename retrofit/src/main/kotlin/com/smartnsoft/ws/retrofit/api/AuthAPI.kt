@@ -1,5 +1,6 @@
-package com.smartnsoft.ws.retrofit
+package com.smartnsoft.ws.retrofit.api
 
+import com.smartnsoft.ws.retrofit.bo.AccessToken
 import retrofit2.Call
 import retrofit2.http.*
 

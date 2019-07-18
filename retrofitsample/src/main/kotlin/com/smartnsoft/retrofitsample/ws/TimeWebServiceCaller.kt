@@ -1,6 +1,6 @@
 package com.smartnsoft.retrofitsample.ws
 
-import com.smartnsoft.ws.retrofit.JacksonRetrofitWebServiceCaller
+import com.smartnsoft.ws.retrofit.caller.JacksonRetrofitWebServiceCaller
 import okhttp3.Response
 
 /**

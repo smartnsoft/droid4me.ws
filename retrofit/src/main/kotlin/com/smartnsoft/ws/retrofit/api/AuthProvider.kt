@@ -1,6 +1,8 @@
-package com.smartnsoft.ws.retrofit
+package com.smartnsoft.ws.retrofit.api
 
 import android.support.annotation.WorkerThread
+import com.smartnsoft.ws.retrofit.bo.AccessToken
+import com.smartnsoft.ws.retrofit.caller.AuthJacksonRetrofitWebServiceCaller
 
 /**
  * @author David Fournier

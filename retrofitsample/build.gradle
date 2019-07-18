@@ -4,14 +4,14 @@ apply plugin: "kotlin-android-extensions"
 
 android
 {
-  compileSdkVersion 27
+  compileSdkVersion 28
 
   defaultConfig
   {
     applicationId "com.smartnsoft.retrofitsample"
 
     minSdkVersion 16
-    targetSdkVersion 27
+    targetSdkVersion 28
 
     versionCode 1
     versionName "1.0"
@@ -52,4 +52,9 @@ dependencies
   testImplementation ("androidx.test:core:1.0.0")
   testImplementation ("org.mockito:mockito-core:1.10.19")
   testImplementation("com.squareup.okhttp3:mockwebserver:4.0.0")
+
+  // Kotlin Coroutines
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.1.1")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-common:1.1.1")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.1.1")
 }

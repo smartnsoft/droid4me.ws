@@ -1,11 +1,11 @@
-package com.smartnsoft.ws.retrofit
+package com.smartnsoft.ws.retrofit.caller
 
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
-import com.smartnsoft.droid4me.ext.json.jackson.JacksonExceptions
-import com.smartnsoft.ws.retrofit.RetrofitWebServiceCaller.BuiltInCache
+import com.smartnsoft.ws.common.exception.JacksonExceptions
+import com.smartnsoft.ws.retrofit.caller.RetrofitWebServiceCaller.BuiltInCache
 import okhttp3.Response
 import retrofit2.Retrofit
 import retrofit2.converter.jackson.JacksonConverterFactory
@@ -48,7 +48,6 @@ constructor(api: Class<API>,
     }
     catch (exception: JsonMappingException)
     {
-      //TODO: open JacksonJsonParsingException in droid4me.ext
       throw JacksonExceptions.JacksonParsingException(exception)
     }
     catch (exception: Exception)
@@ -65,7 +64,6 @@ constructor(api: Class<API>,
     }
     catch (exception: JsonMappingException)
     {
-      //TODO: open JacksonJsonParsingException in droid4me.ext
       throw JacksonExceptions.JacksonParsingException(exception)
     }
     catch (exception: Exception)

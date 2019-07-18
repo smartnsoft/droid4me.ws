@@ -2,8 +2,7 @@ package test
 
 import com.smartnsoft.retrofitsample.bo.IP
 import com.smartnsoft.retrofitsample.ws.MyWebServiceCaller
-import com.smartnsoft.ws.retrofit.CacheException
-import com.smartnsoft.ws.retrofit.RetrofitWebServiceCaller
+import com.smartnsoft.ws.retrofit.caller.RetrofitWebServiceCaller
 import junit.framework.Assert.*
 import org.junit.AfterClass
 import org.junit.Before
@@ -13,8 +12,6 @@ import java.io.File
 import java.lang.Exception
 
 /**
- * The class description here.
- *
  * @author David Fournier
  * @since 2019.06.19
  */
@@ -104,7 +101,7 @@ class Test
     }
     catch (exception: Exception)
     {
-      assertTrue(exception is CacheException)
+      assertTrue(exception is RetrofitWebServiceCaller.CacheException)
     }
   }
 }

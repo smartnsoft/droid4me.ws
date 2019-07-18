@@ -1,4 +1,4 @@
-package com.smartnsoft.ws.retrofit
+package com.smartnsoft.ws.retrofit.bo
 
 /**
  * @author Anthony Msihid

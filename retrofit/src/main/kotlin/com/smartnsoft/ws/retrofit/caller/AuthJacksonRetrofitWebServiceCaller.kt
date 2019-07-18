@@ -1,7 +1,12 @@
-package com.smartnsoft.ws.retrofit
+package com.smartnsoft.ws.retrofit.caller
 
 import android.support.annotation.WorkerThread
-import com.smartnsoft.droid4me.ext.json.jackson.JacksonExceptions
+import com.smartnsoft.ws.common.exception.JacksonExceptions
+import com.smartnsoft.ws.retrofit.api.AuthProvider
+import com.smartnsoft.ws.retrofit.api.AuthAPI
+import com.smartnsoft.ws.retrofit.bo.AccessToken
+import com.smartnsoft.ws.retrofit.bo.ErrorResponse
+import com.smartnsoft.ws.retrofit.bo.ResponseWithError
 import okhttp3.*
 import retrofit2.Call
 import retrofit2.Retrofit
@@ -22,7 +27,7 @@ import java.util.concurrent.TimeUnit
  * @param[connectTimeout] the connect timeout is applied when connecting a TCP socket to the target host.
  * @param[readTimeout] the read timeout is applied to both the TCP socket and for individual read IO operations including on [Source] of the [Response].
  * @param[writeTimeout] the write timeout is applied for individual write IO operations.
- * @param[withBuiltInCache] class to configure the cache and its default values. You must [setupCache]. If set to null, the built in cache is disabled and you don't need to [setupCache]. See [BuiltInCache].
+ * @param[builtInCache] class to configure the cache and its default values. You must [setupCache]. If set to null, the built in cache is disabled and you don't need to [setupCache]. See [BuiltInCache].
  *
  */
 abstract class AuthJacksonRetrofitWebServiceCaller<out API>
@@ -39,7 +44,7 @@ constructor(private val authProvider: AuthProvider,
   companion object
   {
 
-    const val MAX_RETRIES = 1
+    protected const val MAX_RETRIES = 1
 
   }
 
@@ -53,20 +58,21 @@ constructor(private val authProvider: AuthProvider,
         // We don't want to try to refresh the token more than [MAX_RETRIES]
         if (responseCount(response) <= MAX_RETRIES && accessToken != null)
         {
-          try
+          val accessTokenResponse = try
           {
-            setAccessToken(executeAuth(authService?.refreshToken(getAuthRoute(), accessToken.refreshToken))?.successResponse)
+            executeAuth(authService?.refreshToken(getAuthRoute(), accessToken.refreshToken))?.successResponse
           }
           catch (exception: IOException)
           {
             warn("Call of refresh token failed with exception: ${exception.printStackTrace()}")
-            setAccessToken(null)
+            null
           }
           catch (exception: JacksonExceptions.JacksonParsingException)
           {
             warn("Call of refresh token failed with exception: ${exception.printStackTrace()}")
-            setAccessToken(null)
+            null
           }
+          setAccessToken(accessTokenResponse)
 
           getAccessToken()?.apply {
             val newAuthorization = "${this.tokenType} ${this.accessToken}"
