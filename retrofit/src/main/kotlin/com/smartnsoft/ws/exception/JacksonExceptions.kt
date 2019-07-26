@@ -1,4 +1,4 @@
-package logger
+package com.smartnsoft.ws.exception
 
 /**
  * @author Anthony Msihid
@@ -26,43 +26,44 @@ package logger
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+
 /**
- * Just in order to have various loggers.
- *
- * @author Édouard Mercier
- * @since 2007.12.23
+ * @author Édouard Mercier, Ludovic Roland
+ * @since 2016.01.29
  */
-interface Logger
+@Suppress("unused")
+abstract class JacksonExceptions
 {
 
-  val isDebugEnabled: Boolean
+  open class JacksonJsonParsingException(throwable: Throwable)
+    : JacksonParsingException(throwable)
+  {
+    companion object
+    {
 
-  val isInfoEnabled: Boolean
+      private val serialVersionUID = 1L
+    }
 
-  val isWarnEnabled: Boolean
+  }
 
-  val isErrorEnabled: Boolean
+  open class JacksonParsingException
+  @JvmOverloads
+  constructor(message: String? = null, throwable: Throwable? = null, statusCode: Int = 0)
+    : CallException(message, throwable, statusCode)
+  {
 
-  val isFatalEnabled: Boolean
+    constructor(throwable: Throwable? = null) : this(null, throwable, 0)
 
-  fun debug(message: String)
+    constructor(message: String? = null, statusCode: Int = 0) : this(message, null, statusCode)
 
-  fun info(message: String)
+    constructor(throwable: Throwable? = null, statusCode: Int = 0) : this(null, throwable, statusCode)
 
-  fun warn(message: String)
+    companion object
+    {
 
-  fun warn(message: String, throwable: Throwable)
+      private val serialVersionUID = 1L
+    }
 
-  fun warn(message: StringBuffer, throwable: Throwable)
-
-  fun error(message: String)
-
-  fun error(message: String, throwable: Throwable)
-
-  fun error(message: StringBuffer, throwable: Throwable)
-
-  fun fatal(message: String)
-
-  fun fatal(message: String, throwable: Throwable)
+  }
 
 }

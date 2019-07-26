@@ -1,4 +1,4 @@
-package com.smartnsoft.ws.common.exception
+package com.smartnsoft.ws.exception
 
 import java.io.InterruptedIOException
 import java.net.SocketException

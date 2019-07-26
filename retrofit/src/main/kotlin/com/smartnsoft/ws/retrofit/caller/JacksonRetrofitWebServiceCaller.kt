@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
-import com.smartnsoft.ws.common.exception.JacksonExceptions
+import com.smartnsoft.ws.exception.JacksonExceptions
 import com.smartnsoft.ws.retrofit.caller.RetrofitWebServiceCaller.BuiltInCache
 import okhttp3.Response
 import retrofit2.Retrofit
@@ -27,7 +27,7 @@ import retrofit2.converter.scalars.ScalarsConverterFactory
  * @param[withBuiltInCache] class to configure the cache and its default values. You must [setupCache]. If set to null, the built in cache is disabled and you don't need to [setupCache]. See [BuiltInCache].
  *
  */
-abstract class JacksonRetrofitWebServiceCaller<out API>
+abstract class JacksonRetrofitWebServiceCaller<API>
 @JvmOverloads
 constructor(api: Class<API>,
             baseUrl: String,

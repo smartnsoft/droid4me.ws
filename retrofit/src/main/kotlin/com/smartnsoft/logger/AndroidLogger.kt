@@ -1,4 +1,4 @@
-package logger
+package com.smartnsoft.logger
 
 /**
  * @author Anthony Msihid
@@ -29,12 +29,12 @@ package logger
 import android.util.Log
 
 /**
- * An implementation which uses the Java standard output and error streams.
+ * The logger implementation for Android.
  *
  *
  *
  *
- * This implementation can be used when the code integrating the library needs to run on an environment with no Android runtime available.
+ * This implementation can only be used when the code integrating the library runs environment with the Android runtime.
  *
  *
  * @author Édouard Mercier
@@ -42,7 +42,7 @@ import android.util.Log
  *
  * @since 2007.12.23
  */
-class NativeLogger(category: String?) : Logger
+class AndroidLogger(private val category: String?) : Logger
 {
 
   constructor(theClass: Class<*>) : this(theClass.simpleName)
@@ -62,66 +62,54 @@ class NativeLogger(category: String?) : Logger
   override val isFatalEnabled: Boolean
     get() = LoggerFactory.logLevel <= Log.ERROR
 
-  private val prefix: String = "[$category] "
-
   override fun debug(message: String)
   {
-    println(getPrefix() + "[D] " + message)
-  }
-
-  override fun error(message: String)
-  {
-    System.err.println(getPrefix() + "[E] " + message)
-  }
-
-  override fun error(message: String, throwable: Throwable)
-  {
-    System.err.println(getPrefix() + "[E] " + message)
-    throwable.printStackTrace(System.err)
-  }
-
-  override fun error(message: StringBuffer, throwable: Throwable)
-  {
-    System.err.println(getPrefix() + message)
-    throwable.printStackTrace(System.err)
-  }
-
-  override fun fatal(message: String)
-  {
-    System.err.println(getPrefix() + "[F] " + message)
-  }
-
-  override fun fatal(message: String, throwable: Throwable)
-  {
-    System.err.println(getPrefix() + "[F] " + message)
-    throwable.printStackTrace(System.err)
+    Log.d(category, message)
   }
 
   override fun info(message: String)
   {
-    println(getPrefix() + "[I] " + message)
+    Log.i(category, message)
   }
 
   override fun warn(message: String)
   {
-    println(getPrefix() + "[W] " + message)
+    Log.w(category, message)
   }
 
   override fun warn(message: String, throwable: Throwable)
   {
-    println(getPrefix() + "[W] " + message)
-    throwable.printStackTrace(System.out)
+    Log.w(category, message, throwable)
   }
 
   override fun warn(message: StringBuffer, throwable: Throwable)
   {
-    println(getPrefix() + "[W] " + message)
-    throwable.printStackTrace(System.out)
+    warn(message.toString(), throwable)
   }
 
-  protected fun getPrefix(): String
+  override fun error(message: String)
   {
-    return "[" + System.currentTimeMillis() + "] " + prefix + " [" + Thread.currentThread().name + "] "
+    Log.e(category, message)
+  }
+
+  override fun error(message: String, throwable: Throwable)
+  {
+    Log.e(category, message, throwable)
+  }
+
+  override fun error(message: StringBuffer, throwable: Throwable)
+  {
+    error(message.toString(), throwable)
+  }
+
+  override fun fatal(message: String)
+  {
+    error(message)
+  }
+
+  override fun fatal(message: String, throwable: Throwable)
+  {
+    error(message, throwable)
   }
 
 }

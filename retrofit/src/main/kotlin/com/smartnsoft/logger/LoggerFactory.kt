@@ -1,4 +1,4 @@
-package logger
+package com.smartnsoft.logger
 
 /**
  * @author Anthony Msihid
@@ -127,7 +127,7 @@ object LoggerFactory
    */
   fun getInstance(category: String): Logger
   {
-    return LoggerFactory.getInstance(category, null)
+    return getInstance(category, null)
   }
 
   /**
@@ -136,28 +136,28 @@ object LoggerFactory
    */
   fun getInstance(theClass: Class<*>): Logger
   {
-    return LoggerFactory.getInstance(null, theClass)
+    return getInstance(null, theClass)
   }
 
   private fun getInstance(category: String?, theClass: Class<*>?): Logger
   {
     synchronized(synchronizationObject) {
       // We need to synchronize this part of the code
-      if (LoggerFactory.loggerImplementation == null)
+      if (loggerImplementation == null)
       {
         // The logger implementation has not been decided yet
-        if (LoggerFactory.retrieveCustomLoggerInstance("SmartConfigurator") == false)
+        if (retrieveCustomLoggerInstance("SmartConfigurator") == false)
         {
-          if (LoggerFactory.retrieveCustomLoggerInstance("com.smartnsoft.droid4me.SmartConfigurator") == false)
+          if (retrieveCustomLoggerInstance("com.smartnsoft.droid4me.SmartConfigurator") == false)
           {
             // This means that the project does not expose the class which enables to configure the logging system
             if (System.getProperty("droid4me.logging", "true") == "false" == true)
             {
-              LoggerFactory.loggerImplementation = LoggerImplementation.NativeLogger
+              loggerImplementation = LoggerFactory.LoggerImplementation.NativeLogger
             }
             else
             {
-              LoggerFactory.loggerImplementation = LoggerImplementation.AndroidLogger
+              loggerImplementation = LoggerFactory.LoggerImplementation.AndroidLogger
             }
           }
         }
@@ -166,8 +166,8 @@ object LoggerFactory
         try
         {
           val loggerConfiguratorClass = Class.forName(loggerConfiguratorClassFqn)
-          LoggerFactory.loggerConfigurator = loggerConfiguratorClass.newInstance() as LoggerConfigurator
-          LoggerFactory.loggerImplementation = LoggerImplementation.Other
+          loggerConfigurator = loggerConfiguratorClass.newInstance() as LoggerConfigurator
+          loggerImplementation = LoggerFactory.LoggerImplementation.Other
         }
         catch (exception: Exception)
         {
@@ -175,28 +175,28 @@ object LoggerFactory
 
         }
 
-        if (LoggerFactory.logLevel >= android.util.Log.INFO)
+        if (logLevel >= android.util.Log.INFO)
         {
-          Log.d("LoggerFactory", "Using the logger '" + LoggerFactory.loggerImplementation + "'")
+          Log.d("LoggerFactory", "Using the logger '" + loggerImplementation + "'")
         }
       }
     }
 
-    when (LoggerFactory.loggerImplementation)
+    when (loggerImplementation)
     {
       LoggerFactory.LoggerImplementation.Other         -> return if (theClass != null)
       {
-        LoggerFactory.loggerConfigurator?.getLogger(theClass) ?: AndroidLogger(theClass)
+        loggerConfigurator?.getLogger(theClass) ?: AndroidLogger(theClass)
       }
       else
       {
-        LoggerFactory.loggerConfigurator?.getLogger(category) ?: AndroidLogger(category)
+        loggerConfigurator?.getLogger(category) ?: AndroidLogger(category)
       }
       LoggerFactory.LoggerImplementation.AndroidLogger -> return theClass?.let { AndroidLogger(it) }
           ?: AndroidLogger(category)
       LoggerFactory.LoggerImplementation.NativeLogger  -> return theClass?.let { NativeLogger(it) }
           ?: NativeLogger(category)
-      else                                             -> return theClass?.let { AndroidLogger(it) }
+      else                                                                   -> return theClass?.let { AndroidLogger(it) }
           ?: AndroidLogger(category)
     }
   }
@@ -206,8 +206,8 @@ object LoggerFactory
     try
     {
       val loggerConfiguratorClass = Class.forName(loggerConfiguratorClassFqn)
-      LoggerFactory.loggerConfigurator = loggerConfiguratorClass.newInstance() as LoggerConfigurator
-      LoggerFactory.loggerImplementation = LoggerImplementation.Other
+      loggerConfigurator = loggerConfiguratorClass.newInstance() as LoggerConfigurator
+      loggerImplementation = LoggerFactory.LoggerImplementation.Other
       return true
     }
     catch (rollbackException: Exception)

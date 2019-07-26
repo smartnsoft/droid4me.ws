@@ -14,7 +14,7 @@ android
     targetSdkVersion 28
 
     versionCode 8
-    versionName "2.0.0-001-SNAPSHOT"
+    versionName "2.0.0-007-SNAPSHOT"
   }
 
   buildTypes
@@ -34,8 +34,8 @@ android
 
 dependencies
 {
-  api(project(":common"))
   implementation ("org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version")
+  api("com.android.support:appcompat-v7:27.1.1")
 
   //Retrofit
   api ("com.squareup.retrofit2:retrofit:2.5.0")

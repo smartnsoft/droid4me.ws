@@ -4,9 +4,8 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import com.smartnsoft.retrofitsample.ws.MyWebServiceCaller
-import com.smartnsoft.retrofitsample.ws.TimeApi
 import com.smartnsoft.retrofitsample.ws.TimeWebServiceCaller
-import com.smartnsoft.ws.common.exception.CallException
+import com.smartnsoft.ws.exception.CallException
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope

@@ -2,13 +2,13 @@ package com.smartnsoft.ws.retrofit.caller
 
 import android.support.annotation.WorkerThread
 import com.fasterxml.jackson.core.type.TypeReference
-import com.smartnsoft.ws.common.exception.CallException
-import com.smartnsoft.ws.common.exception.JacksonExceptions
+import com.smartnsoft.ws.exception.CallException
+import com.smartnsoft.ws.exception.JacksonExceptions
 import com.smartnsoft.ws.retrofit.caller.RetrofitWebServiceCaller.BuiltInCache
 import com.smartnsoft.ws.retrofit.caller.RetrofitWebServiceCaller.FetchPolicyType.*
 import com.smartnsoft.ws.retrofit.bo.ResponseWithError
-import logger.Logger
-import logger.LoggerFactory
+import com.smartnsoft.logger.Logger
+import com.smartnsoft.logger.LoggerFactory
 import okhttp3.*
 import retrofit2.Call
 import retrofit2.Converter
@@ -41,8 +41,8 @@ import kotlin.collections.ArrayList
  *
  */
 @Suppress("UNCHECKED_CAST", "unused")
-abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
-                                                 baseUrl: String,
+abstract class RetrofitWebServiceCaller<API>(protected val api: Class<API>,
+                                                 protected val baseUrl: String,
                                                  protected val connectTimeout: Long = CONNECT_TIMEOUT,
                                                  protected val readTimeout: Long = READ_TIMEOUT,
                                                  protected val writeTimeout: Long = WRITE_TIMEOUT,
@@ -343,8 +343,8 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
     return@lazy serviceBuilder.build().create(api)
   }
 
-  private val httpClient: OkHttpClient by lazy {
-    computeHttpClient()
+  protected val httpClient: OkHttpClient by lazy {
+    computeHttpClient().build()
   }
 
   private var isHttpClientInitialized = false
@@ -369,7 +369,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
     this.isConnected = isConnected
   }
 
-  open fun computeHttpClient(): OkHttpClient
+  open fun computeHttpClient(): OkHttpClient.Builder
   {
     val okHttpClientBuilder = OkHttpClient.Builder()
         .connectTimeout(connectTimeout, TimeUnit.MILLISECONDS)
@@ -409,7 +409,7 @@ abstract class RetrofitWebServiceCaller<out API>(api: Class<API>,
 
     isHttpClientInitialized = true
 
-    return okHttpClientBuilder.build()
+    return okHttpClientBuilder
   }
 
   /**

@@ -1,7 +1,7 @@
 package com.smartnsoft.ws.retrofit.caller
 
 import android.support.annotation.WorkerThread
-import com.smartnsoft.ws.common.exception.JacksonExceptions
+import com.smartnsoft.ws.exception.JacksonExceptions
 import com.smartnsoft.ws.retrofit.api.AuthProvider
 import com.smartnsoft.ws.retrofit.api.AuthAPI
 import com.smartnsoft.ws.retrofit.bo.AccessToken
@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit
  * @param[builtInCache] class to configure the cache and its default values. You must [setupCache]. If set to null, the built in cache is disabled and you don't need to [setupCache]. See [BuiltInCache].
  *
  */
-abstract class AuthJacksonRetrofitWebServiceCaller<out API>
+abstract class AuthJacksonRetrofitWebServiceCaller<API>
 @JvmOverloads
 constructor(private val authProvider: AuthProvider,
             api: Class<API>,
