@@ -64,14 +64,10 @@ constructor(private val authProvider: AuthProvider,
           {
             executeAuth(authService?.refreshToken("${getBaseRoute()}${getRefreshEndpoint()}", accessToken.refreshToken))
           }
-          catch (exception: IOException)
+          catch (exception: Exception)
           {
             warn("Call of refresh token failed with exception: ${exception.printStackTrace()}")
-            null
-          }
-          catch (exception: JacksonExceptions.JacksonParsingException)
-          {
-            warn("Call of refresh token failed with exception: ${exception.printStackTrace()}")
+
             null
           }
 
@@ -96,12 +92,13 @@ constructor(private val authProvider: AuthProvider,
 
           if (accessTokenResponse?.errorResponse != null)
           {
-            error("Call of refresh token respond '${accessTokenResponse.errorResponse.statusCode}' with message: '${accessTokenResponse.errorResponse.message}'")
+            warn("Call of refresh token respond '${accessTokenResponse.errorResponse.statusCode}' with message: '${accessTokenResponse.errorResponse.message}'")
           }
         }
 
         // Fail case
         setAccessToken(null)
+
         return null
       }
     }
@@ -110,7 +107,6 @@ constructor(private val authProvider: AuthProvider,
     {
       val newRequest = chain.request().newBuilder()
       newRequest.header("Accept", "application/json")
-      newRequest.header("Content-Type", "application/json")
 
       authProvider.apply {
         getXApiKey().takeIf { XApiKey -> XApiKey.isNotBlank() }?.apply {
@@ -180,14 +176,10 @@ constructor(private val authProvider: AuthProvider,
     {
       executeAuth(authService?.authToken("${authProvider.getBaseRoute()}${authProvider.getLoginEndpoint()}", LoginBody(username, password)))
     }
-    catch (exception: IOException)
+    catch (exception: Exception)
     {
       warn("Call of login failed with exception: ${exception.printStackTrace()}")
-      null
-    }
-    catch (exception: JacksonExceptions.JacksonParsingException)
-    {
-      warn("Call of login failed with exception: ${exception.printStackTrace()}")
+
       null
     }
 
@@ -208,15 +200,20 @@ constructor(private val authProvider: AuthProvider,
 
   final override fun shouldDoSecondCall(response: Response?, exception: Exception?): Boolean
   {
-    return if (response?.code() == 401 || response?.code() == 403)
+    return when (response?.code())
     {
-      // Invalidate token
-      authProvider.setAccessToken(null)
-      false
-    }
-    else
-    {
-      super.shouldDoSecondCall(response, exception)
+      401,
+      403  ->
+      {
+        // Invalidate token
+        authProvider.setAccessToken(null)
+
+        false
+      }
+      else ->
+      {
+        super.shouldDoSecondCall(response, exception)
+      }
     }
   }
 
@@ -230,7 +227,7 @@ constructor(private val authProvider: AuthProvider,
       val newRequest = request.newBuilder().build()
       val response: Response? = httpAuthClient.newCall(newRequest).execute()
       val success = response?.isSuccessful
-      val responseBody = response?.body()?.string()
+      val responseBody = response?.peekBody(Long.MAX_VALUE)?.string()
 
       return if (success == true)
       {

@@ -14,6 +14,6 @@ import java.io.Serializable
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class ErrorResponse
 (
-    @JsonProperty("status_code") val statusCode: Int,
+    @JsonProperty("code") val statusCode: Int,
     @JsonProperty("message") val message: String
 ) : Serializable

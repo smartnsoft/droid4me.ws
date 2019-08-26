@@ -2,7 +2,6 @@ package com.smartnsoft.ws.retrofit.api
 
 import com.smartnsoft.ws.retrofit.bo.AccessToken
 import com.smartnsoft.ws.retrofit.bo.LoginBody
-import org.json.JSONObject
 import retrofit2.Call
 import retrofit2.http.*
 
@@ -14,10 +13,12 @@ interface AuthAPI
 {
 
   @POST
+  @Headers("Content-Type: application/json")
   fun authToken(@Url url: String, @Body authBody: LoginBody)
       : Call<AccessToken>
 
   @POST
+  @FormUrlEncoded
   fun refreshToken(@Url url: String, @Field("refresh_token") refreshToken: String)
       : Call<AccessToken>
 

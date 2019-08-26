@@ -616,7 +616,7 @@ abstract class RetrofitWebServiceCaller<API>(protected val api: Class<API>,
       val newRequest = request.newBuilder().tag(if (builtInCache != null) cachePolicy else null).build()
       val response: Response? = httpClient.newCall(newRequest).execute()
 
-      response?.body()?.close()
+      response?.peekBody(Long.MAX_VALUE)?.close()
 
       return response
     } ?: return null
@@ -632,7 +632,7 @@ abstract class RetrofitWebServiceCaller<API>(protected val api: Class<API>,
 
       val newRequest = request.newBuilder().tag(if (builtInCache != null) cachePolicy else null).build()
       val response: Response? = httpClient.newCall(newRequest).execute()
-      val responseBody = response?.body()?.string()
+      val responseBody = response?.peekBody(Long.MAX_VALUE)?.string()
 
       return mapResponseToObject(responseBody, clazz)
     } ?: return null
@@ -649,7 +649,7 @@ abstract class RetrofitWebServiceCaller<API>(protected val api: Class<API>,
       val newRequest = request.newBuilder().tag(if (builtInCache != null) cachePolicy else null).build()
       val response: Response? = httpClient.newCall(newRequest).execute()
       val success = response?.isSuccessful
-      val responseBody = response?.body()?.string()
+      val responseBody = response?.peekBody(Long.MAX_VALUE)?.string()
 
       return if (success == true)
       {
@@ -672,7 +672,7 @@ abstract class RetrofitWebServiceCaller<API>(protected val api: Class<API>,
 
       val newRequest = request.newBuilder().tag(if (builtInCache != null) cachePolicy else null).build()
       val response: Response? = httpClient.newCall(newRequest).execute()
-      val responseBody = response?.body()?.string()
+      val responseBody = response?.peekBody(Long.MAX_VALUE)?.string()
 
       return mapResponseToObject(responseBody, typeReference)
     } ?: return null
@@ -689,7 +689,7 @@ abstract class RetrofitWebServiceCaller<API>(protected val api: Class<API>,
       val newRequest = request.newBuilder().tag(if (builtInCache != null) cachePolicy else null).build()
       val response: Response? = httpClient.newCall(newRequest).execute()
       val success = response?.isSuccessful
-      val responseBody = response?.body()?.string()
+      val responseBody = response?.peekBody(Long.MAX_VALUE)?.string()
 
       return if (success == true)
       {
@@ -713,7 +713,7 @@ abstract class RetrofitWebServiceCaller<API>(protected val api: Class<API>,
       val newRequest = request.newBuilder().tag(if (builtInCache != null) cachePolicy else null).build()
       val response: Response? = httpClient.newCall(newRequest).execute()
 
-      return response?.body()?.string()
+      return response?.peekBody(Long.MAX_VALUE)?.string()
     } ?: return null
   }
 
