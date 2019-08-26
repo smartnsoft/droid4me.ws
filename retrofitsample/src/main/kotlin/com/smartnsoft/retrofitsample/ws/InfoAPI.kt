@@ -21,7 +21,7 @@ interface InfoAPI
 
   }
 
-  @GET("info/")
+  @GET("info")
   fun getInfo(): Call<InfoContainer>
 
 }

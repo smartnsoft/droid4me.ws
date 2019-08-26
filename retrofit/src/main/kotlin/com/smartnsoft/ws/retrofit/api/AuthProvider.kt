@@ -15,12 +15,28 @@ import com.smartnsoft.ws.retrofit.caller.AuthJacksonRetrofitWebServiceCaller
 interface AuthProvider
 {
   /**
-   * Method to define the route for the authentication. (eg: "https://www.server.com/auth")
+   * Method to define the endpoint for the login. (eg: "login")
    *
-   * @return the route to use for the authentication service.
+   * @return the endpoint to use for the login service.
    */
   @WorkerThread
-  fun getAuthRoute(): String
+  fun getLoginEndpoint(): String = "login"
+
+  /**
+   * Method to define the endpoint for the refresh. (eg: "refresh")
+   *
+   * @return the endpoint to use for the refresh service.
+   */
+  @WorkerThread
+  fun getRefreshEndpoint(): String = "refresh"
+
+  /**
+   * Method to define the base route for the authentication. (eg: "https://www.server.com/auth")
+   *
+   * @return the base route to use for the authentication service.
+   */
+  @WorkerThread
+  fun getBaseRoute(): String
 
   /**
    * Method to define the XApiKey header for the authentication.

@@ -42,12 +42,12 @@ import kotlin.collections.ArrayList
  */
 @Suppress("UNCHECKED_CAST", "unused")
 abstract class RetrofitWebServiceCaller<API>(protected val api: Class<API>,
-                                                 protected val baseUrl: String,
-                                                 protected val connectTimeout: Long = CONNECT_TIMEOUT,
-                                                 protected val readTimeout: Long = READ_TIMEOUT,
-                                                 protected val writeTimeout: Long = WRITE_TIMEOUT,
-                                                 protected val builtInCache: BuiltInCache? = BuiltInCache(),
-                                                 protected val converterFactories: Array<Converter.Factory> = emptyArray())
+                                             protected val baseUrl: String,
+                                             protected val connectTimeout: Long = CONNECT_TIMEOUT,
+                                             protected val readTimeout: Long = READ_TIMEOUT,
+                                             protected val writeTimeout: Long = WRITE_TIMEOUT,
+                                             protected val builtInCache: BuiltInCache? = BuiltInCache(),
+                                             protected val converterFactories: Array<Converter.Factory> = emptyArray())
 {
 
   /**
@@ -650,18 +650,15 @@ abstract class RetrofitWebServiceCaller<API>(protected val api: Class<API>,
       val response: Response? = httpClient.newCall(newRequest).execute()
       val success = response?.isSuccessful
       val responseBody = response?.body()?.string()
-      val responseWithError = ResponseWithError<SuccessClass, ErrorClass>()
 
-      if (success == true)
+      return if (success == true)
       {
-        responseWithError.successResponse = mapResponseToObject(responseBody, clazz)
+        ResponseWithError(successResponse = mapResponseToObject(responseBody, clazz))
       }
       else
       {
-        responseWithError.errorResponse = mapResponseToObject(responseBody, errorClazz)
+        ResponseWithError(errorResponse = mapResponseToObject(responseBody, errorClazz))
       }
-
-      return responseWithError
     } ?: return null
   }
 
@@ -693,18 +690,15 @@ abstract class RetrofitWebServiceCaller<API>(protected val api: Class<API>,
       val response: Response? = httpClient.newCall(newRequest).execute()
       val success = response?.isSuccessful
       val responseBody = response?.body()?.string()
-      val responseWithError = ResponseWithError<SuccessClass, ErrorClass>()
 
-      if (success == true)
+      return if (success == true)
       {
-        responseWithError.successResponse = mapResponseToObject(responseBody, typeReference)
+        ResponseWithError(successResponse = mapResponseToObject(responseBody, typeReference))
       }
       else
       {
-        responseWithError.errorResponse = mapResponseToObject(responseBody, errorClazz)
+        ResponseWithError(errorResponse = mapResponseToObject(responseBody, errorClazz))
       }
-
-      return responseWithError
     } ?: return null
   }
 

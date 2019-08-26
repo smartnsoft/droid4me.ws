@@ -6,6 +6,7 @@ import com.smartnsoft.ws.retrofit.api.AuthProvider
 import com.smartnsoft.ws.retrofit.api.AuthAPI
 import com.smartnsoft.ws.retrofit.bo.AccessToken
 import com.smartnsoft.ws.retrofit.bo.ErrorResponse
+import com.smartnsoft.ws.retrofit.bo.LoginBody
 import com.smartnsoft.ws.retrofit.bo.ResponseWithError
 import okhttp3.*
 import retrofit2.Call
@@ -48,7 +49,8 @@ constructor(private val authProvider: AuthProvider,
 
   }
 
-  private inner class TokenAuthenticatorInterceptor : Authenticator, Interceptor
+  private inner class TokenAuthenticatorInterceptor
+    : Authenticator, Interceptor
   {
     override fun authenticate(route: Route?, response: Response): Request?
     {
@@ -60,7 +62,7 @@ constructor(private val authProvider: AuthProvider,
         {
           val accessTokenResponse = try
           {
-            executeAuth(authService?.refreshToken(getAuthRoute(), accessToken.refreshToken))?.successResponse
+            executeAuth(authService?.refreshToken("${getBaseRoute()}${getRefreshEndpoint()}", accessToken.refreshToken))
           }
           catch (exception: IOException)
           {
@@ -72,7 +74,13 @@ constructor(private val authProvider: AuthProvider,
             warn("Call of refresh token failed with exception: ${exception.printStackTrace()}")
             null
           }
-          setAccessToken(accessTokenResponse)
+
+          if (accessTokenResponse?.successResponse != null)
+          {
+            debug("token refreshed, new token is: ${accessTokenResponse.successResponse.accessToken}")
+          }
+
+          setAccessToken(accessTokenResponse?.successResponse)
 
           getAccessToken()?.apply {
             val newAuthorization = "${this.tokenType} ${this.accessToken}"
@@ -85,6 +93,11 @@ constructor(private val authProvider: AuthProvider,
                   .build()
             }
           }
+
+          if (accessTokenResponse?.errorResponse != null)
+          {
+            error("Call of refresh token respond '${accessTokenResponse.errorResponse.statusCode}' with message: '${accessTokenResponse.errorResponse.message}'")
+          }
         }
 
         // Fail case
@@ -96,6 +109,8 @@ constructor(private val authProvider: AuthProvider,
     override fun intercept(chain: Interceptor.Chain): Response
     {
       val newRequest = chain.request().newBuilder()
+      newRequest.header("Accept", "application/json")
+      newRequest.header("Content-Type", "application/json")
 
       authProvider.apply {
         getXApiKey().takeIf { XApiKey -> XApiKey.isNotBlank() }?.apply {
@@ -138,7 +153,7 @@ constructor(private val authProvider: AuthProvider,
     authProvider.run {
       val serviceBuilder = Retrofit
           .Builder()
-          .baseUrl(getAuthRoute())
+          .baseUrl(getBaseRoute())
           .client(httpAuthClient)
 
       converterFactories.forEach { converterFactory ->
@@ -163,7 +178,7 @@ constructor(private val authProvider: AuthProvider,
   {
     val responseWithError: ResponseWithError<AccessToken, ErrorResponse>? = try
     {
-      executeAuth(authService?.authToken(authProvider.getAuthRoute(), username, password))
+      executeAuth(authService?.authToken("${authProvider.getBaseRoute()}${authProvider.getLoginEndpoint()}", LoginBody(username, password)))
     }
     catch (exception: IOException)
     {
@@ -195,6 +210,8 @@ constructor(private val authProvider: AuthProvider,
   {
     return if (response?.code() == 401 || response?.code() == 403)
     {
+      // Invalidate token
+      authProvider.setAccessToken(null)
       false
     }
     else
@@ -214,18 +231,15 @@ constructor(private val authProvider: AuthProvider,
       val response: Response? = httpAuthClient.newCall(newRequest).execute()
       val success = response?.isSuccessful
       val responseBody = response?.body()?.string()
-      val responseWithError = ResponseWithError<AccessToken, ErrorResponse>()
 
-      if (success == true)
+      return if (success == true)
       {
-        responseWithError.successResponse = mapResponseToObject(responseBody, AccessToken::class.java)
+        ResponseWithError(successResponse = mapResponseToObject(responseBody, AccessToken::class.java))
       }
       else
       {
-        responseWithError.errorResponse = mapResponseToObject(responseBody, ErrorResponse::class.java)
+        ResponseWithError(errorResponse = mapResponseToObject(responseBody, ErrorResponse::class.java))
       }
-
-      return responseWithError
     } ?: return null
   }
 }
