@@ -175,7 +175,7 @@ class RDLVAuthenticator
     {
       val response = serviceCaller.get404()
 
-      assert(response?.isSuccessful == false)
+      assert(response?.isSuccessful == false && response.code == 404 && serviceCaller.authProvider.getAccessToken() != null)
     }
     catch (exception: CallException)
     {
