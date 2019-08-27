@@ -2,6 +2,7 @@ package test
 
 import android.util.Log
 import com.smartnsoft.retrofitsample.ws.RDLVApi
+import com.smartnsoft.ws.exception.CallException
 import com.smartnsoft.ws.retrofit.api.AuthProvider
 import com.smartnsoft.ws.retrofit.bo.AccessToken
 import com.smartnsoft.ws.retrofit.bo.ErrorResponse
@@ -50,6 +51,11 @@ class RDLVAuthenticator
       fun getClients(): okhttp3.Response?
       {
         return executeResponse(service.getClients())
+      }
+
+      fun get404(): okhttp3.Response?
+      {
+        return executeResponse(service.get404(), CachePolicy(fetchPolicyType = FetchPolicyType.ONLY_NETWORK))
       }
     }
 
@@ -135,6 +141,12 @@ class RDLVAuthenticator
 
       assert(response?.isSuccessful == false && response.code == 403 && serviceCaller.authProvider.getAccessToken() == null)
     }
+    catch (exception: CallException)
+    {
+      Log.e("RDLVAuthenticator", "Unable to get clients with exception :", exception)
+
+      assert(exception.statusCode == 403 && serviceCaller.authProvider.getAccessToken() == null)
+    }
     catch (exception: Exception)
     {
       Log.e("RDLVAuthenticator", "Unable to get clients with exception :", exception)
@@ -155,7 +167,30 @@ class RDLVAuthenticator
   }
 
   @Test
-  fun test_04_getInfoAfterLogin()
+  fun test_04_404()
+  {
+    initializeService(RequestBehavior.NORMAL)
+
+    try
+    {
+      val response = serviceCaller.get404()
+
+      assert(response?.isSuccessful == false)
+    }
+    catch (exception: CallException)
+    {
+      Log.e("RDLVAuthenticator", "Unable to get page with exception :", exception)
+
+      assert(exception.statusCode == 404 && serviceCaller.authProvider.getAccessToken() != null)
+    }
+    catch (exception: Exception)
+    {
+      assert(false)
+    }
+  }
+
+  @Test
+  fun test_05_getInfoAfterLogin()
   {
     initializeService(RequestBehavior.NORMAL)
 
@@ -177,7 +212,7 @@ class RDLVAuthenticator
   }
 
   @Test
-  fun test_05_getInfoWithEmptyApiKey()
+  fun test_06_getInfoWithEmptyApiKey()
   {
     initializeService(RequestBehavior.EMPTY_XAPIKEY)
 
@@ -187,6 +222,12 @@ class RDLVAuthenticator
 
       assert(response?.isSuccessful == false && response.code == 403 && serviceCaller.authProvider.getAccessToken() == null)
     }
+    catch (exception: CallException)
+    {
+      Log.e("RDLVAuthenticator", "Unable to get clients with exception :", exception)
+
+      assert(exception.statusCode == 403 && serviceCaller.authProvider.getAccessToken() == null)
+    }
     catch (exception: Exception)
     {
       Log.e("RDLVAuthenticator", "Unable to get clients with exception :", exception)
@@ -196,7 +237,7 @@ class RDLVAuthenticator
   }
 
   @Test
-  fun test_06_relogAfter403()
+  fun test_07_relogAfter403()
   {
     initializeService(RequestBehavior.NORMAL)
 
@@ -207,26 +248,33 @@ class RDLVAuthenticator
   }
 
   @Test
-  fun test_07_wrongAccessAndRefreshToken()
+  fun test_08_wrongAccessAndRefreshToken()
   {
     initializeService(RequestBehavior.WRONG_TOKEN_AND_REFRESH)
 
     try
     {
-      val response = serviceCaller.getClients()
+      serviceCaller.getClients()
 
-      assert(response?.isSuccessful == false && response.code == 401 && serviceCaller.authProvider.getAccessToken() == null)
+      assert(false)
     }
     catch (exception: Exception)
     {
       Log.e("RDLVAuthenticator", "Unable to get clients with exception :", exception)
 
-      assert(false)
+      if (exception is CallException)
+      {
+        assert(exception.statusCode == 401 && serviceCaller.authProvider.getAccessToken() == null)
+      }
+      else
+      {
+        assert(false)
+      }
     }
   }
 
   @Test
-  fun test_08_relogAfter403()
+  fun test_09_relogAfter403()
   {
     initializeService(RequestBehavior.NORMAL)
 
@@ -237,7 +285,7 @@ class RDLVAuthenticator
   }
 
   @Test
-  fun test_09_getInfoAfterRefresh()
+  fun test_10_getInfoAfterRefresh()
   {
     initializeService(RequestBehavior.WRONG_TOKEN)
     val oldToken = serviceCaller.authProvider.getAccessToken()
@@ -258,7 +306,7 @@ class RDLVAuthenticator
   }
 
   @Test
-  fun test_10_loginKo()
+  fun test_11_loginKo()
   {
     initializeService(RequestBehavior.NORMAL)
 

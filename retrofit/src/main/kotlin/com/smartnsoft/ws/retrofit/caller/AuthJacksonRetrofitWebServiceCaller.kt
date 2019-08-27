@@ -1,6 +1,7 @@
 package com.smartnsoft.ws.retrofit.caller
 
 import android.support.annotation.WorkerThread
+import com.smartnsoft.ws.exception.CallException
 import com.smartnsoft.ws.exception.JacksonExceptions
 import com.smartnsoft.ws.retrofit.api.AuthProvider
 import com.smartnsoft.ws.retrofit.api.AuthAPI
@@ -54,6 +55,8 @@ constructor(private val authProvider: AuthProvider,
   {
     override fun authenticate(route: Route?, response: Response): Request?
     {
+      var callException: CallException? = null
+
       authProvider.apply {
         val accessToken = getAccessToken()
 
@@ -66,38 +69,43 @@ constructor(private val authProvider: AuthProvider,
           }
           catch (exception: Exception)
           {
-            warn("Call of refresh token failed with exception: ${exception.printStackTrace()}")
-
+            callException = CallException("Call of refresh token failed with exception.", exception)
             null
           }
 
           if (accessTokenResponse?.successResponse != null)
           {
-            debug("token refreshed, new token is: ${accessTokenResponse.successResponse.accessToken}")
-          }
+            debug("Token refreshed, new token is: ${accessTokenResponse.successResponse.accessToken}")
 
-          setAccessToken(accessTokenResponse?.successResponse)
+            setAccessToken(accessTokenResponse.successResponse)
 
-          getAccessToken()?.apply {
-            val newAuthorization = "${this.tokenType} ${this.accessToken}"
+            getAccessToken()?.apply {
+              val newAuthorization = "${this.tokenType} ${this.accessToken}"
 
-            // We don't want to try the call with the same token twice
-            if (response.request().header("Authorization") != newAuthorization)
-            {
-              return response.request().newBuilder()
-                  .header("Authorization", newAuthorization)
-                  .build()
+              // We don't want to try the call with the same token twice
+              if (response.request().header("Authorization") != newAuthorization)
+              {
+                return response.request().newBuilder()
+                    .header("Authorization", newAuthorization)
+                    .build()
+              }
             }
           }
-
-          if (accessTokenResponse?.errorResponse != null)
+          else if (accessTokenResponse?.errorResponse != null)
           {
-            warn("Call of refresh token respond '${accessTokenResponse.errorResponse.statusCode}' with message: '${accessTokenResponse.errorResponse.message}'")
+            warn("Call of refresh token http status is '${accessTokenResponse.errorResponse.statusCode}' with message: '${accessTokenResponse.errorResponse.message}'")
+
+            if (accessTokenResponse.errorResponse.statusCode == 401 || accessTokenResponse.errorResponse.statusCode == 403)
+            {
+              callException = CallException("Unable to refresh token.", Throwable(accessTokenResponse.errorResponse.message), accessTokenResponse.errorResponse.statusCode)
+              setAccessToken(null)
+            }
           }
         }
 
-        // Fail case
-        setAccessToken(null)
+        callException?.apply {
+          throw this
+        }
 
         return null
       }
@@ -198,27 +206,54 @@ constructor(private val authProvider: AuthProvider,
     return listOf(TokenAuthenticatorInterceptor())
   }
 
+  @Throws(CallException::class, Exception::class)
   final override fun shouldDoSecondCall(response: Response?, exception: Exception?): Boolean
   {
-    return when (response?.code())
+    return when
     {
-      401,
-      403  ->
+      response?.code() == 401 || response?.code() == 403                                         ->
       {
         // Invalidate token
         authProvider.setAccessToken(null)
-
         false
       }
-      else ->
+      exception is CallException && (exception.statusCode == 401 || exception.statusCode == 403) ->
       {
+        // Invalidate token
+        authProvider.setAccessToken(null)
+        throw exception
+      }
+      else                                                                                       ->
+      {
+        if (exception != null)
+        {
+          if (exception is CallException)
+          {
+            val message = "Server-side error with message '${exception.message}' and statusCode '${exception.statusCode}'"
+            exception.cause?.also { throwable ->
+              log.error(message, throwable)
+            } ?: run {
+              log.error(message)
+            }
+          }
+          else
+          {
+            val message = "Error happened server-side"
+            exception.cause?.also { throwable ->
+              log.error(message, throwable)
+            } ?: run {
+              log.error(message)
+            }
+          }
+        }
+
         super.shouldDoSecondCall(response, exception)
       }
     }
   }
 
   @WorkerThread
-  @Throws(IOException::class, JacksonExceptions.JacksonParsingException::class)
+  @Throws(IOException::class, JacksonExceptions.JacksonParsingException::class, CallException::class, CacheException::class, Exception::class)
   private fun executeAuth(call: Call<AccessToken>?): ResponseWithError<AccessToken, ErrorResponse>?
   {
     call?.request()?.let { request ->

@@ -17,7 +17,6 @@ import java.io.File
 import java.io.IOException
 import java.net.URI
 import java.net.URISyntaxException
-import java.net.UnknownHostException
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
@@ -179,13 +178,16 @@ abstract class RetrofitWebServiceCaller<API>(protected val api: Class<API>,
         val shouldDoSecondCall = try
         {
           firstTry = chain.proceed(request)
+
           shouldDoSecondCall(firstTry, null)
         }
         catch (exception: Exception)
         {
           firstException = exception
+
           val errorMessage = "Call of ${chain.request().method()} to ${chain.request().url()} with cache policy ${fetchPolicyType.name} failed."
           debug(errorMessage)
+
           shouldDoSecondCall(firstTry, exception)
         }
 
@@ -195,10 +197,9 @@ abstract class RetrofitWebServiceCaller<API>(protected val api: Class<API>,
           if (fetchPolicyType == FetchPolicyType.ONLY_NETWORK)
           {
             val errorMessage = "Call of ${chain.request().method()} to ${chain.request().url()} with cache policy ${fetchPolicyType.name} failed because the network is not connected."
-
             debug(errorMessage)
 
-            throw CallException(errorMessage, UnknownHostException())
+            return onStatusCodeNotOk(firstTry, firstException)
           }
         }
 
@@ -213,10 +214,9 @@ abstract class RetrofitWebServiceCaller<API>(protected val api: Class<API>,
             if (hasConnectivity().not())
             {
               val errorMessage = "Call of ${chain.request().method()} to ${chain.request().url()} with cache policy ${fetchPolicyType.name} failed because the network is not connected."
-
               debug(errorMessage)
 
-              throw CallException(errorMessage, UnknownHostException())
+              return onStatusCodeNotOk(firstTry, firstException)
             }
 
             secondRequest = buildNetworkRequest(request, cachePolicy, originalRequestUrl)
@@ -231,7 +231,7 @@ abstract class RetrofitWebServiceCaller<API>(protected val api: Class<API>,
           {
             debug("Call of ${request.method()} to ${request.url()} with cache policy ${fetchPolicyType.name} failed to find a cached response. Failing.")
 
-            throw CacheException("Call of ${request.method()} to ${request.url()} with cache policy ${fetchPolicyType.name} failed to find a cached response. Failing.")
+            return onStatusCodeNotOk(firstTry, CacheException("Call of ${request.method()} to ${request.url()} with cache policy ${fetchPolicyType.name} failed to find a cached response. Failing."))
           }
           (firstTry == null || firstTry.isSuccessful.not())                                                                                     ->
           {
@@ -282,7 +282,7 @@ abstract class RetrofitWebServiceCaller<API>(protected val api: Class<API>,
       throw IllegalStateException("Cache Policy is malformed")
     }
 
-    @Throws(CallException::class)
+    @Throws(CallException::class, CacheException::class, Exception::class)
     fun onStatusCodeNotOk(response: Response?, exception: Exception? = null): Response?
     {
       if (response != null && shouldReturnErrorResponse.not())
@@ -291,7 +291,12 @@ abstract class RetrofitWebServiceCaller<API>(protected val api: Class<API>,
       }
       else if (response == null && exception != null)
       {
-        throw CallException(exception.message, exception)
+        throw when (exception)
+        {
+          is CacheException -> CacheException(exception.message)
+          is CallException  -> CallException(exception.message, exception, exception.statusCode)
+          else              -> exception
+        }
       }
       else
       {
@@ -607,7 +612,7 @@ abstract class RetrofitWebServiceCaller<API>(protected val api: Class<API>,
 
   @WorkerThread
   @JvmOverloads
-  @Throws(IOException::class)
+  @Throws(IOException::class, CallException::class, CacheException::class, Exception::class)
   protected fun <T> executeResponse(call: Call<T>?, cachePolicy: CachePolicy = CachePolicy()): Response?
   {
     call?.request()?.let { request ->
@@ -624,7 +629,7 @@ abstract class RetrofitWebServiceCaller<API>(protected val api: Class<API>,
 
   @WorkerThread
   @JvmOverloads
-  @Throws(IOException::class, JacksonExceptions.JacksonParsingException::class)
+  @Throws(IOException::class, JacksonExceptions.JacksonParsingException::class, CallException::class, CacheException::class, Exception::class)
   protected fun <T> execute(clazz: Class<T>, call: Call<T>?, cachePolicy: CachePolicy = CachePolicy()): T?
   {
     call?.request()?.let { request ->
@@ -640,7 +645,7 @@ abstract class RetrofitWebServiceCaller<API>(protected val api: Class<API>,
 
   @WorkerThread
   @JvmOverloads
-  @Throws(IOException::class, JacksonExceptions.JacksonParsingException::class)
+  @Throws(IOException::class, JacksonExceptions.JacksonParsingException::class, CallException::class, CacheException::class, Exception::class)
   protected fun <SuccessClass, ErrorClass> executeWithErrorResponse(clazz: Class<SuccessClass>, call: Call<SuccessClass>?, errorClazz: Class<ErrorClass>, cachePolicy: CachePolicy = CachePolicy()): ResponseWithError<SuccessClass, ErrorClass>?
   {
     call?.request()?.let { request ->
@@ -664,7 +669,7 @@ abstract class RetrofitWebServiceCaller<API>(protected val api: Class<API>,
 
   @WorkerThread
   @JvmOverloads
-  @Throws(IOException::class, JacksonExceptions.JacksonParsingException::class)
+  @Throws(IOException::class, JacksonExceptions.JacksonParsingException::class, CallException::class, CacheException::class, Exception::class)
   protected fun <T> execute(typeReference: TypeReference<T>, call: Call<T>?, cachePolicy: CachePolicy = CachePolicy()): T?
   {
     call?.request()?.let { request ->
@@ -680,7 +685,7 @@ abstract class RetrofitWebServiceCaller<API>(protected val api: Class<API>,
 
   @WorkerThread
   @JvmOverloads
-  @Throws(IOException::class, JacksonExceptions.JacksonParsingException::class)
+  @Throws(IOException::class, JacksonExceptions.JacksonParsingException::class, CallException::class, CacheException::class, Exception::class)
   protected fun <SuccessClass, ErrorClass> executeWithErrorResponse(typeReference: TypeReference<SuccessClass>, call: Call<SuccessClass>?, errorClazz: Class<ErrorClass>, cachePolicy: CachePolicy = CachePolicy()): ResponseWithError<SuccessClass, ErrorClass>?
   {
     call?.request()?.let { request ->
@@ -704,7 +709,7 @@ abstract class RetrofitWebServiceCaller<API>(protected val api: Class<API>,
 
   @WorkerThread
   @JvmOverloads
-  @Throws(IOException::class)
+  @Throws(IOException::class, CallException::class, CacheException::class, Exception::class)
   protected fun <T> execute(call: Call<T>?, cachePolicy: CachePolicy = CachePolicy()): String?
   {
     call?.request()?.let { request ->

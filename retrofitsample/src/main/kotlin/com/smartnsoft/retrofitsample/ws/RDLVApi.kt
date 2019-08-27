@@ -23,4 +23,7 @@ interface RDLVApi
   @GET("clients")
   fun getClients(): Call<List<Client>>
 
+  @GET("404")
+  fun get404(): Call<Any>
+
 }
