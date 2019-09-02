@@ -16,7 +16,6 @@ import javax.net.ssl.SSLException
  */
 @Suppress("unused")
 open class CallException
-@JvmOverloads
 constructor(message: String? = null, throwable: Throwable? = null, val statusCode: Int = 0)
   : Exception(message, throwable)
 {
@@ -29,9 +28,6 @@ constructor(message: String? = null, throwable: Throwable? = null, val statusCod
 
   companion object
   {
-
-    private val serialVersionUID = 4869741128441615773L
-
     /**
      * Indicates whether the cause of the provided exception is due to a connectivity problem.
      *

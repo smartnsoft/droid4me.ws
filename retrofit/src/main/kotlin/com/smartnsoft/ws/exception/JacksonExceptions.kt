@@ -1,9 +1,5 @@
 package com.smartnsoft.ws.exception
 
-/**
- * @author Anthony Msihid
- * @since 2019.07.18
- */
 // The MIT License (MIT)
 //
 // Copyright (c) 2017 Smart&Soft
@@ -28,7 +24,7 @@ package com.smartnsoft.ws.exception
 
 
 /**
- * @author Édouard Mercier, Ludovic Roland
+ * @author Édouard Mercier, Ludovic Roland, Anthony Msihid
  * @since 2016.01.29
  */
 @Suppress("unused")
@@ -37,17 +33,8 @@ abstract class JacksonExceptions
 
   open class JacksonJsonParsingException(throwable: Throwable)
     : JacksonParsingException(throwable)
-  {
-    companion object
-    {
-
-      private val serialVersionUID = 1L
-    }
-
-  }
 
   open class JacksonParsingException
-  @JvmOverloads
   constructor(message: String? = null, throwable: Throwable? = null, statusCode: Int = 0)
     : CallException(message, throwable, statusCode)
   {
@@ -57,12 +44,6 @@ abstract class JacksonExceptions
     constructor(message: String? = null, statusCode: Int = 0) : this(message, null, statusCode)
 
     constructor(throwable: Throwable? = null, statusCode: Int = 0) : this(null, throwable, statusCode)
-
-    companion object
-    {
-
-      private val serialVersionUID = 1L
-    }
 
   }
 
