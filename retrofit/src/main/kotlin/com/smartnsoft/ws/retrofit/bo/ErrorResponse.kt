@@ -13,6 +13,6 @@ import com.fasterxml.jackson.annotation.JsonProperty
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class ErrorResponse
 (
-    @JsonProperty("code") val statusCode: Int,
-    @JsonProperty("message") val message: String
+    @field:JsonProperty("code") val statusCode: Int,
+    @field:JsonProperty("message") val message: String
 )
