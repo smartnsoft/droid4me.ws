@@ -71,21 +71,4 @@ constructor(api: Class<API>,
       throw JacksonExceptions.JacksonParsingException(exception)
     }
   }
-
-  override fun <T> mapResponseToObject(responseBody: String?, typeReference: TypeReference<T>): T?
-  {
-    try
-    {
-      return mapper.readValue(responseBody, typeReference)
-    }
-    catch (exception: JsonMappingException)
-    {
-      //TODO: open JacksonJsonParsingException in droid4me.ext
-      throw JacksonExceptions.JacksonParsingException(exception)
-    }
-    catch (exception: Exception)
-    {
-      throw JacksonExceptions.JacksonParsingException(exception)
-    }
-  }
 }
