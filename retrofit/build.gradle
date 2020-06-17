@@ -14,7 +14,7 @@ android
     targetSdkVersion 28
 
     versionCode 8
-    versionName "2.0.0-007-SNAPSHOT"
+    versionName "2.0.0"
   }
 
   buildTypes
