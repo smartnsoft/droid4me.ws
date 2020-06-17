@@ -2,7 +2,7 @@ package com.smartnsoft.retrofitsample.ws
 
 import com.smartnsoft.retrofitsample.bo.IP
 import com.smartnsoft.retrofitsample.bo.PostResponse
-import com.smartnsoft.ws.retrofit.JacksonRetrofitWebServiceCaller
+import com.smartnsoft.ws.retrofit.caller.JacksonRetrofitWebServiceCaller
 import okhttp3.Response
 
 /**
@@ -18,9 +18,9 @@ object MyWebServiceCaller
     return execute(service.getString())
   }
 
-  fun getIp(): IP?
+  fun getIp(fetchPolicyType: FetchPolicyType = FetchPolicyType.CACHE_THEN_NETWORK, cacheRetentionPolicyInSeconds: Int = 20, customKey: String? = "ip"): IP?
   {
-    return execute(IP::class.java, service.getIp(), CachePolicy(FetchPolicyType.CACHE_THEN_NETWORK, cacheRetentionPolicyInSeconds = 20, customKey = "ip"))
+    return execute(IP::class.java, service.getIp(), CachePolicy(fetchPolicyType, cacheRetentionPolicyInSeconds = cacheRetentionPolicyInSeconds, customKey = customKey))
   }
 
   fun getIp2(): IP?

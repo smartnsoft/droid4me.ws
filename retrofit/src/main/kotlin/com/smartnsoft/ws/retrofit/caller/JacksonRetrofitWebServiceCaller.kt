@@ -1,17 +1,17 @@
-package com.smartnsoft.ws.retrofit
+package com.smartnsoft.ws.retrofit.caller
 
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.smartnsoft.droid4me.ext.json.jackson.JacksonExceptions
-import com.smartnsoft.ws.retrofit.RetrofitWebServiceCaller.BuiltInCache
+import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.smartnsoft.ws.exception.JacksonExceptions
+import com.smartnsoft.ws.retrofit.caller.RetrofitWebServiceCaller.BuiltInCache
 import okhttp3.Response
 import retrofit2.Retrofit
 import retrofit2.converter.jackson.JacksonConverterFactory
 import retrofit2.converter.scalars.ScalarsConverterFactory
 
 /**
- *
  * @author David Fournier
  * @since 2018.03.26
  */
@@ -29,10 +29,16 @@ import retrofit2.converter.scalars.ScalarsConverterFactory
  */
 abstract class JacksonRetrofitWebServiceCaller<API>
 @JvmOverloads
-constructor(api: Class<API>, baseUrl: String, connectTimeout: Long = CONNECT_TIMEOUT, readTimeout: Long = READ_TIMEOUT, writeTimeout: Long = WRITE_TIMEOUT, withBuiltInCache: BuiltInCache? = BuiltInCache())
+constructor(api: Class<API>,
+            baseUrl: String,
+            connectTimeout: Long = CONNECT_TIMEOUT,
+            readTimeout: Long = READ_TIMEOUT,
+            writeTimeout: Long = WRITE_TIMEOUT,
+            withBuiltInCache: BuiltInCache? = BuiltInCache())
   : RetrofitWebServiceCaller<API>(api, baseUrl, connectTimeout, readTimeout, writeTimeout, withBuiltInCache, arrayOf(JacksonConverterFactory.create(), ScalarsConverterFactory.create()))
 {
   private val mapper = ObjectMapper()
+      .registerModule(KotlinModule())
 
   override fun <T> mapResponseToObject(responseBody: String?, clazz: Class<T>): T?
   {
@@ -42,7 +48,22 @@ constructor(api: Class<API>, baseUrl: String, connectTimeout: Long = CONNECT_TIM
     }
     catch (exception: JsonMappingException)
     {
-      //TODO: open JacksonJsonParsingException in droid4me.ext
+      throw JacksonExceptions.JacksonParsingException(exception)
+    }
+    catch (exception: Exception)
+    {
+      throw JacksonExceptions.JacksonParsingException(exception)
+    }
+  }
+
+  override fun <T> mapResponseToObject(responseBody: String?, typeReference: TypeReference<T>): T?
+  {
+    try
+    {
+      return mapper.readValue(responseBody, typeReference)
+    }
+    catch (exception: JsonMappingException)
+    {
       throw JacksonExceptions.JacksonParsingException(exception)
     }
     catch (exception: Exception)
