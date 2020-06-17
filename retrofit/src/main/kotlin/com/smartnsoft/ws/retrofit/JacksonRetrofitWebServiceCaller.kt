@@ -1,5 +1,6 @@
 package com.smartnsoft.ws.retrofit
 
+import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.smartnsoft.droid4me.ext.json.jackson.JacksonExceptions
@@ -38,6 +39,23 @@ constructor(api: Class<API>, baseUrl: String, connectTimeout: Long = CONNECT_TIM
     try
     {
       return mapper.readValue(responseBody, clazz)
+    }
+    catch (exception: JsonMappingException)
+    {
+      //TODO: open JacksonJsonParsingException in droid4me.ext
+      throw JacksonExceptions.JacksonParsingException(exception)
+    }
+    catch (exception: Exception)
+    {
+      throw JacksonExceptions.JacksonParsingException(exception)
+    }
+  }
+
+  override fun <T> mapResponseToObject(responseBody: String?, typeReference: TypeReference<T>): T?
+  {
+    try
+    {
+      return mapper.readValue(responseBody, typeReference)
     }
     catch (exception: JsonMappingException)
     {

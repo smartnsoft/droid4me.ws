@@ -35,9 +35,9 @@ class MainActivity
         @Throws(Exception::class)
         override fun runGuarded()
         {
-          TimeWebServiceCaller.getTime()?.also {
+          /*TimeWebServiceCaller.getTime()?.also {
             Log.w(TAG, "getTime: $it")
-          }
+          }*/
           /*MyWebServiceCaller.getString()?.also {
             Log.d(TAG, "getString: $it")
           }
